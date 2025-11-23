@@ -24,3 +24,5 @@ node_modules/
 # Claude
 .claude_settings.json
 /.claude/
+/.github/copilot-instructions.md
+/AGENTS.md
