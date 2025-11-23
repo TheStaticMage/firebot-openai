@@ -23,4 +23,5 @@ Optional: Delete any older versions of this plugin from your Firebot scripts dir
 
 ## Upgrade Notes
 
-No breaking changes at this time.
+- After upgrading, reopen **Settings > Integrations > OpenAI** to confirm your API key and model settings persisted.
+- :boom: No breaking changes at this time.

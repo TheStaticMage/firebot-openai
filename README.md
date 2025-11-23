@@ -2,14 +2,16 @@
 
 This is a [Firebot](https://firebot.app) plugin that allows you to run server-side prompts with OpenAI and use the results in Firebot.
 
+Requirements: Firebot 5.65+, an OpenAI API key, and access to the OpenAI Prompt Caching API.
+
 ## Features
 
-- Configure your OpenAI API key and preferred model (defaults to `gpt-4o`) in the plugin's integration settings.
+- Configure your OpenAI API key and preferred model (defaults to `gpt-4o`) under **Settings > Integrations > OpenAI** before running any effects. See the [OpenAI Setup Guide](/doc/openai-setup.md) for details.
 - Call the OpenAI Prompt Caching API directly from Firebot using saved Playground prompt IDs (with optional version pinning).
-- Firebot effect **OpenAI: Run Prompt** accepts input text and max length guard, sends a structured JSON payload (system guard + user input + username), and calls your cached prompt.
+- Firebot effect **OpenAI: Run Prompt** accepts input text and an optional max length guard, sends a structured JSON payload (system guard + user input + username), and calls your cached prompt.
 - Returns two outputs for downstream effects:
   - `$effectOutput[openaiError]` (blank on success)
-  - `$effectOutput[openaiResponse]` (the JSON body, even when wrapped in ```json``` code fences).
+  - `$effectOutput[openaiResponse]` (the raw JSON body, even when the model wraps it in ```json``` code fences).
 
 Example use cases:
 
