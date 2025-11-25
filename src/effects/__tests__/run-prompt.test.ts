@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { runPromptEffect, SYSTEM_INPUT } from '../run-prompt';
+import { normalizeResponsePayload } from '../run-prompt';
 import * as openaiModule from '../../internal/openai';
 
 jest.mock('../../internal/openai');
@@ -247,5 +248,128 @@ describe('Run OpenAI Prompt Effect', () => {
         expect(result.success).toBe(false);
         expect(result.outputs.openaiError).toContain('zero or a positive number');
         expect(mockedCallOpenAI).not.toHaveBeenCalled();
+    });
+
+    it('should normalize special characters when enabled', async () => {
+        const responseWithSpecialChars = {
+            summary: 'A heading— with emphasis…',
+            notes: ['First—item', 'Second — item']
+        };
+
+        mockedCallOpenAI.mockResolvedValue({
+            error: 'Bad — thing…',
+            response: responseWithSpecialChars
+        });
+
+        const event = {
+            effect: {
+                promptId: 'test-prompt-id',
+                promptVersion: '1.0',
+                inputText: 'Test input',
+                normalizeSpecialChars: true
+            },
+            trigger: {
+                metadata: {
+                    username: 'testuser'
+                }
+            }
+        } as any;
+
+        const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+        const expectedResponse = {
+            summary: 'A heading - with emphasis...',
+            notes: ['First - item', 'Second - item']
+        };
+
+        expect(result.outputs.openaiError).toBe('Bad - thing...');
+        expect(result.outputs.openaiResponse).toBe(JSON.stringify(expectedResponse));
+    });
+
+    it('should normalize response payload strings, arrays, and objects', () => {
+        const payload = {
+            heading: 'Title—goes here…',
+            list: ['Item—one', 'Item — two', 3],
+            nested: {
+                note: 'More—text'
+            },
+            passthrough: 42
+        };
+
+        const normalized = normalizeResponsePayload(payload, { normalizeSpecialChars: true, removeEmojis: false, removeNonAscii: false }) as Record<string, unknown>;
+
+        expect(normalized.heading).toBe('Title - goes here...');
+        expect(normalized.list).toEqual(['Item - one', 'Item - two', 3]);
+        expect((normalized.nested as Record<string, unknown>).note).toBe('More - text');
+        expect(normalized.passthrough).toBe(42);
+    });
+
+    it('should remove emojis when requested', async () => {
+        const responseWithEmojis = {
+            message: 'Hello 😊 — world',
+            tags: ['Nice 😎', 'Plain']
+        };
+
+        mockedCallOpenAI.mockResolvedValue({
+            error: 'Oops 😢',
+            response: responseWithEmojis
+        });
+
+        const event = {
+            effect: {
+                promptId: 'test-prompt-id',
+                promptVersion: '1.0',
+                inputText: 'Test input',
+                removeEmojis: true
+            },
+            trigger: {
+                metadata: {
+                    username: 'testuser'
+                }
+            }
+        } as any;
+
+        const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+        const expectedResponse = {
+            message: 'Hello  — world',
+            tags: ['Nice ', 'Plain']
+        };
+
+        expect(result.outputs.openaiError).toBe('Oops ');
+        expect(result.outputs.openaiResponse).toBe(JSON.stringify(expectedResponse));
+    });
+
+    it('should remove non-ASCII characters when requested', async () => {
+        const responseWithUnicode = {
+            message: 'Hello — world 漢字',
+            tags: ['Nice 😎', 'Plain', '混合']
+        };
+
+        mockedCallOpenAI.mockResolvedValue({
+            error: 'Oops 😢 漢字',
+            response: responseWithUnicode
+        });
+
+        const event = {
+            effect: {
+                promptId: 'test-prompt-id',
+                promptVersion: '1.0',
+                inputText: 'Test input',
+                removeNonAscii: true
+            },
+            trigger: {
+                metadata: {
+                    username: 'testuser'
+                }
+            }
+        } as any;
+
+        const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+        const expectedResponse = {
+            message: 'Hello  world ',
+            tags: ['Nice ', 'Plain', '']
+        };
+
+        expect(result.outputs.openaiError).toBe('Oops  ');
+        expect(result.outputs.openaiResponse).toBe(JSON.stringify(expectedResponse));
     });
 });
