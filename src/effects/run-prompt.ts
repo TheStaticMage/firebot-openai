@@ -2,11 +2,16 @@ import { callOpenAI } from '../internal/openai';
 import { logger } from '../main';
 import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
 
+export interface InputMapping {
+    key: string;
+    value: string;
+}
+
 export interface RunPromptEffectModel {
     comment?: string;
     promptId: string;
     promptVersion?: string;
-    inputText: string;
+    inputMappings?: InputMapping[];
     maxLength?: number | string;
     normalizeSpecialChars?: boolean;
     removeEmojis?: boolean;
@@ -133,15 +138,44 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
             </div>
             <p class="muted">Leave this blank to use the latest prompt version.</p>
         </eos-container>
-        <eos-container header="Input Text" pad-top="true">
-            <firebot-input
-                model="effect.inputText"
-                use-text-area="true"
-                placeholder-text="Enter input text for the prompt"
-                rows="4"
-                cols="40"
-                menu-position="under"
-            />
+        <eos-container header="Input Mappings" pad-top="true">
+            <div ng-init="effect.inputMappings = effect.inputMappings || [{key: '', value: ''}]">
+                <div ng-repeat="mapping in effect.inputMappings track by $index" style="margin-bottom: 10px;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="flex: 1;">
+                            <input
+                                ng-model="mapping.key"
+                                type="text"
+                                class="form-control"
+                                placeholder="Key (no variables)"
+                                style="width: 100%;"
+                            />
+                        </div>
+                        <div style="flex: 2;">
+                            <firebot-input
+                                model="mapping.value"
+                                placeholder-text="Value (supports variables)"
+                                menu-position="under"
+                            />
+                        </div>
+                        <button
+                            class="btn btn-danger"
+                            ng-click="effect.inputMappings.splice($index, 1)"
+                            ng-disabled="effect.inputMappings.length === 1"
+                        >
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <button
+                    class="btn btn-primary"
+                    ng-click="effect.inputMappings.push({key: '', value: ''})"
+                    style="margin-top: 10px;"
+                >
+                    <i class="fa fa-plus"></i> Add Mapping
+                </button>
+            </div>
+            <p class="muted" style="margin-top: 10px;">Add key-value pairs to send to the prompt. Keys cannot contain variables; values support variable replacement.</p>
         </eos-container>
         <eos-container header="Maximum Input Length (Optional)" pad-top="true">
             <div class="input-group">
@@ -156,7 +190,7 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
                     min="0"
                 >
             </div>
-            <p class="muted">If set above zero, the effect will fail when the input text exceeds this length.</p>
+            <p class="muted">If set above zero, the effect will fail when the serialized JSON input exceeds this length.</p>
         </eos-container>
         <eos-container header="Output Formatting" pad-top="true">
             <div class="form-group">
@@ -177,14 +211,37 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
     `,
     optionsValidator: (options: RunPromptEffectModel) => {
         const errors: string[] = [];
+        const RESERVED_KEYS = new Set([
+            'system_input',
+            'user_input',
+            'username',
+            'system',
+            'prompt',
+            'instruction',
+            'instruction_override',
+            'system_prompt',
+            'jailbreak'
+        ]);
 
         if (!options.promptId || options.promptId.trim().length === 0) {
             errors.push('Prompt ID is required');
         }
 
-        if (!options.inputText || options.inputText.trim().length === 0) {
-            errors.push('Input Text is required');
-        }
+        const mappings = options.inputMappings || [];
+        const validMappings = mappings.filter(m => m.key.trim() !== '' || m.value.trim() !== '');
+
+        validMappings.forEach((mapping, index) => {
+            const trimmedKey = mapping.key.trim();
+            const trimmedValue = mapping.value.trim();
+
+            if (trimmedKey === '') {
+                errors.push(`Input mapping ${index + 1}: key cannot be empty`);
+            } else if (trimmedValue === '') {
+                errors.push(`Input mapping ${index + 1}: value cannot be empty`);
+            } else if (RESERVED_KEYS.has(trimmedKey.toLowerCase())) {
+                errors.push(`Input mapping ${index + 1}: key "${trimmedKey}" is reserved and cannot be used`);
+            }
+        });
 
         return errors;
     },
@@ -193,7 +250,6 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
 
         const promptId = effect.promptId?.trim() ?? '';
         const promptVersion = effect.promptVersion?.trim() || undefined;
-        const inputText = effect.inputText?.trim() ?? '';
         const parsedMaxLength = Number(effect.maxLength ?? 0);
 
         if (Number.isNaN(parsedMaxLength) || parsedMaxLength < 0) {
@@ -210,10 +266,29 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
 
         const maxLength = parsedMaxLength;
 
-        logger.debug(`Running OpenAI prompt with ID: ${promptId}, version: ${promptVersion ?? 'unspecified'}, input: ${inputText}`);
+        const mappings = effect.inputMappings || [];
+        const validMappings = mappings.filter(m => m.key.trim() !== '' && m.value.trim() !== '');
 
-        if (maxLength > 0 && inputText.length > maxLength) {
-            const errorMsg = `Input text exceeds maximum length of ${maxLength} characters`;
+        const userInputData: Record<string, string> = {};
+        validMappings.forEach((mapping) => {
+            const key = mapping.key.trim();
+            const value = mapping.value.trim();
+            userInputData[key] = value;
+        });
+
+        const structuredInput = {
+            // eslint-disable-next-line camelcase
+            system_input: SYSTEM_INPUT,
+            // eslint-disable-next-line camelcase
+            user_input: userInputData,
+            username: trigger.metadata.username || 'Unknown'
+        };
+
+        const inputString = JSON.stringify(structuredInput);
+        logger.debug(`Running OpenAI prompt with ID: ${promptId}, version: ${promptVersion ?? 'unspecified'}, input: ${inputString}`);
+
+        if (maxLength > 0 && inputString.length > maxLength) {
+            const errorMsg = `Input exceeds maximum length of ${maxLength} characters`;
             logger.debug(errorMsg);
             return {
                 success: false,
@@ -224,18 +299,10 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
             };
         }
 
-        const structuredInput = {
-            // eslint-disable-next-line camelcase
-            system_input: SYSTEM_INPUT,
-            // eslint-disable-next-line camelcase
-            user_input: inputText,
-            username: trigger.metadata.username || 'Unknown'
-        };
-
         const result = await callOpenAI<Record<string, unknown>>(
             promptId,
             promptVersion,
-            JSON.stringify(structuredInput)
+            inputString
         );
 
         if (result.error) {
@@ -251,7 +318,7 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
         };
         const shouldNormalize = normalizationOptions.normalizeSpecialChars || normalizationOptions.removeEmojis || normalizationOptions.removeNonAscii;
 
-        const normalizedError = shouldNormalize ? cleanString(result.error, normalizationOptions) : result.error;
+        const normalizedError = result.error;
         const normalizedResponse = shouldNormalize && result.response
             ? normalizeResponsePayload(result.response, normalizationOptions)
             : result.response;
