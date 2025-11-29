@@ -1,7 +1,8 @@
-import { EventEmitter } from 'events';
 import { IntegrationData } from "@crowbartools/firebot-custom-scripts-types";
+import { EventEmitter } from 'events';
 import { runPromptEffect } from "./effects/run-prompt";
-import { AVAILABLE_MODELS } from "./internal/openai";
+import { textToSpeechEffect } from "./effects/text-to-speech";
+import { AVAILABLE_MODELS, AVAILABLE_TTS_MODELS, AVAILABLE_VOICES } from "./internal/openai";
 import { firebot, logger } from "./main";
 
 type IntegrationParameters = {
@@ -31,9 +32,12 @@ export class OpenAIIntegration extends EventEmitter {
         // Register IPC listeners
         const { frontendCommunicator, effectManager } = firebot.modules;
         frontendCommunicator.onAsync('openai:getModels', async () => AVAILABLE_MODELS);
+        frontendCommunicator.onAsync('openai:getTtsModels', async () => AVAILABLE_TTS_MODELS);
+        frontendCommunicator.onAsync('openai:getTtsVoices', async () => AVAILABLE_VOICES);
 
         // Load effects
         effectManager.registerEffect(runPromptEffect);
+        effectManager.registerEffect(textToSpeechEffect);
 
         logger.info("OpenAI integration initialized");
     }
