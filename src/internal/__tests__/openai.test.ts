@@ -27,7 +27,6 @@ describe('OpenAI Client', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         (integration.getApiKey as jest.Mock).mockReturnValue('test-api-key');
-        (integration.getModel as jest.Mock).mockReturnValue('gpt-4o');
     });
 
     it('should successfully call OpenAI Prompt Caching API and marshal response', async () => {
@@ -52,7 +51,8 @@ describe('OpenAI Client', () => {
         const result: OpenAIResponse<TestScoreResponse> = await callOpenAI(
             'pmpt_692222fca0d4819789bdeb9c96525da6082582f7a47f178f',
             '2',
-            'This is a test of my TTS filter beep boop'
+            'This is a test of my TTS filter beep boop',
+            'gpt-4o'
         );
 
         expect(result.error).toBe('');
@@ -85,7 +85,8 @@ describe('OpenAI Client', () => {
         const result: OpenAIResponse<TestScoreResponse> = await callOpenAI(
             'pmpt_692222fca0d4819789bdeb9c96525da6082582f7a47f178f',
             '2',
-            'My sprinkler goes tss tsss ttsss tstst tssst pssst prrffffffft'
+            'My sprinkler goes tss tsss ttsss tstst tssst pssst prrffffffft',
+            'gpt-4o'
         );
 
         expect(result.error).toBe('');
@@ -107,7 +108,8 @@ describe('OpenAI Client', () => {
         const result: OpenAIResponse<TestScoreResponse> = await callOpenAIFresh(
             'pmpt_test',
             '1',
-            'test'
+            'test',
+            'gpt-4o'
         );
 
         expect(result.error).toBe('OpenAI API key not configured');
@@ -136,7 +138,8 @@ describe('OpenAI Client', () => {
         const result: OpenAIResponse<TestScoreResponse> = await callOpenAI(
             'pmpt_test',
             '1',
-            'test'
+            'test',
+            'gpt-4o'
         );
 
         expect(result.error).toContain('Failed to marshal response');
@@ -153,7 +156,8 @@ describe('OpenAI Client', () => {
         const result: OpenAIResponse<TestScoreResponse> = await callOpenAI(
             'pmpt_test',
             '1',
-            'test'
+            'test',
+            'gpt-4o'
         );
 
         expect(result.error).toContain('401 Incorrect API key');
@@ -170,7 +174,8 @@ describe('OpenAI Client', () => {
         const result: OpenAIResponse<TestScoreResponse> = await callOpenAI(
             'pmpt_test',
             '1',
-            'test'
+            'test',
+            'gpt-4o'
         );
 
         expect(result.error).toContain('timed out');
@@ -197,7 +202,7 @@ describe('OpenAI Client', () => {
             create: mockCreate
         } as any;
 
-        await callOpenAI('pmpt_test', '1', 'test input');
+        await callOpenAI('pmpt_test', '1', 'test input', 'gpt-4o');
 
         expect(mockCreate).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -212,7 +217,7 @@ describe('OpenAI Client', () => {
         );
     });
 
-    it('should use configured model from settings', async () => {
+    it('should use provided modelId parameter', async () => {
         const mockResponse = {
             output: [
                 {
@@ -232,9 +237,7 @@ describe('OpenAI Client', () => {
             create: mockCreate
         } as any;
 
-        (integration.getModel as jest.Mock).mockReturnValue('gpt-4-turbo');
-
-        await callOpenAI('pmpt_test', '1', 'test');
+        await callOpenAI('pmpt_test', '1', 'test', 'gpt-4-turbo');
 
         expect(mockCreate).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -263,7 +266,7 @@ describe('OpenAI Client', () => {
             create: mockCreate
         } as any;
 
-        await callOpenAI('pmpt_test', undefined, 'test input');
+        await callOpenAI('pmpt_test', undefined, 'test input', 'gpt-4o');
 
         expect(mockCreate).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -296,7 +299,8 @@ describe('OpenAI Client', () => {
         const result: OpenAIResponse<TestScoreResponse> = await callOpenAI(
             'pmpt_test',
             '1',
-            'test'
+            'test',
+            'gpt-4o'
         );
 
         expect(result.error).toBe('');

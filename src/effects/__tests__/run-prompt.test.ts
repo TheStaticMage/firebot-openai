@@ -67,6 +67,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: 'user_input', value: 'Test input' }]
             },
             trigger: {
@@ -101,6 +102,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: '  test-prompt-id  ',
                 promptVersion: '  1.0  ',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: '  user_input  ', value: '  Test input  ' }]
             },
             trigger: {
@@ -132,6 +134,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: 'user_input', value: 'Test input' }]
             },
             trigger: {
@@ -155,6 +158,7 @@ describe('Run OpenAI Prompt Effect', () => {
         const event = {
             effect: {
                 promptId: 'test-prompt-id',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: 'user_input', value: 'Test input' }]
             },
             trigger: {
@@ -170,7 +174,8 @@ describe('Run OpenAI Prompt Effect', () => {
         expect(mockedCallOpenAI).toHaveBeenCalledWith(
             'test-prompt-id',
             undefined,
-            expect.any(String)
+            expect.any(String),
+            'gpt-4o'
         );
         const [, , payload] = mockedCallOpenAI.mock.calls[0];
         const parsedPayload = JSON.parse(payload);
@@ -205,6 +210,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: 'user_input', value: 'Test input' }]
             },
             trigger: {
@@ -232,6 +238,7 @@ describe('Run OpenAI Prompt Effect', () => {
         const event = {
             effect: {
                 promptId: 'test-prompt-id',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: 'user_input', value: 'This input is too long' }],
                 maxLength: 30
             },
@@ -253,6 +260,7 @@ describe('Run OpenAI Prompt Effect', () => {
         const event = {
             effect: {
                 promptId: 'test-prompt-id',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: 'user_input', value: 'valid input' }],
                 maxLength: -1
             },
@@ -285,6 +293,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: 'user_input', value: 'Test input' }],
                 normalizeSpecialChars: true
             },
@@ -338,6 +347,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: 'user_input', value: 'Test input' }],
                 removeEmojis: true
             },
@@ -365,6 +375,7 @@ describe('Run OpenAI Prompt Effect', () => {
 
         const options = {
             promptId: 'test-prompt-id',
+            modelId: 'gpt-4o',
             inputMappings: [{ key: 'user_input', value: '' }]
         } as any;
 
@@ -383,6 +394,7 @@ describe('Run OpenAI Prompt Effect', () => {
         reservedKeys.forEach((key) => {
             const options = {
                 promptId: 'test-prompt-id',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key, value: 'Test value' }]
             } as any;
 
@@ -407,6 +419,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
+                modelId: 'gpt-4o',
                 inputMappings: [{ key: 'user_input', value: 'Test input' }],
                 removeNonAscii: true
             },

@@ -1,4 +1,4 @@
-import { callOpenAI } from '../internal/openai';
+import { callOpenAI, AVAILABLE_MODELS } from '../internal/openai';
 import { logger } from '../main';
 import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
 
@@ -9,6 +9,7 @@ export interface InputMapping {
 
 export interface RunPromptEffectModel {
     comment?: string;
+    modelId?: string;
     promptId: string;
     promptVersion?: string;
     inputMappings?: InputMapping[];
@@ -108,6 +109,12 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
                 >
             </div>
             <p class="muted">Only for your reference. This comment is not sent to OpenAI.</p>
+        </eos-container>
+        <eos-container header="Model" pad-top="true">
+            <div ng-if="modelsError" class="alert alert-danger" style="margin-bottom: 10px;">{{modelsError}}</div>
+            <select ng-model="effect.modelId" class="form-control">
+                <option ng-repeat="model in models" value="{{model}}">{{model}}</option>
+            </select>
         </eos-container>
         <eos-container header="Prompt ID" pad-top="true">
             <div class="input-group">
@@ -209,6 +216,19 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
             </div>
         </eos-container>
     `,
+    optionsController: ($scope: any, backendCommunicator: any) => {
+        $scope.models = [];
+        $scope.effect.modelId = $scope.effect.modelId || 'gpt-4o';
+
+        backendCommunicator.fireEventAsync('openai:getModels')
+            .then((models: string[]) => {
+                $scope.models = models;
+            })
+            .catch((error: any) => {
+                $scope.modelsError = `Failed to load models: ${error.message}`;
+                $scope.models = ['gpt-4o'];
+            });
+    },
     optionsValidator: (options: RunPromptEffectModel) => {
         const errors: string[] = [];
         const RESERVED_KEYS = new Set([
@@ -222,6 +242,10 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
             'system_prompt',
             'jailbreak'
         ]);
+
+        if (!options.modelId || options.modelId.trim().length === 0) {
+            errors.push('Model is required');
+        }
 
         if (!options.promptId || options.promptId.trim().length === 0) {
             errors.push('Prompt ID is required');
@@ -299,10 +323,12 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
             };
         }
 
+        const modelId = effect.modelId || AVAILABLE_MODELS[0];
         const result = await callOpenAI<Record<string, unknown>>(
             promptId,
             promptVersion,
-            inputString
+            inputString,
+            modelId
         );
 
         if (result.error) {
