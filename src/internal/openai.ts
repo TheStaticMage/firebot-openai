@@ -3,6 +3,8 @@ import { integration } from '../integration-singleton';
 import { logger } from '../main';
 
 export const AVAILABLE_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
+export const AVAILABLE_TTS_MODELS = ['tts-1', 'tts-1-hd', 'gpt-4o-mini-tts'];
+export const AVAILABLE_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'];
 
 export interface MessageInput {
     role: 'user' | 'assistant';
@@ -113,5 +115,55 @@ function marshalResponse<T>(response: Record<string, any>): T {
         logger.error(`Failed to parse JSON from OpenAI response: ${parseError.message}`);
         logger.error(`Response text: ${text}`);
         throw new Error(`Failed to marshal response to expected type: ${parseError.message}`);
+    }
+}
+
+/**
+ * Generate speech audio using OpenAI's Text-to-Speech API
+ */
+export async function synthesizeSpeech(
+    model: string,
+    voice: string,
+    text: string,
+    speed: number,
+    prompt?: string
+): Promise<OpenAIResponse<Buffer>> {
+    try {
+        const openaiClient = getOpenAIClient();
+
+        logger.debug(`Synthesizing speech with model: ${model}, voice: ${voice}`);
+
+        const speechOptions: any = {
+            model,
+            voice,
+            input: text,
+            speed,
+            // eslint-disable-next-line camelcase
+            response_format: 'mp3'
+        };
+
+        if (model === 'gpt-4o-mini-tts' && prompt) {
+            speechOptions.instructions = prompt;
+        }
+
+        const response = await openaiClient.audio.speech.create(speechOptions);
+
+        // Convert the response to a Buffer
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        logger.debug(`Successfully synthesized speech, buffer size: ${buffer.length} bytes`);
+
+        return {
+            error: '',
+            response: buffer
+        };
+    } catch (error: any) {
+        const errorMsg = error.message || 'Unknown error';
+        logger.error(`OpenAI TTS API call failed: ${errorMsg}`);
+        return {
+            error: errorMsg,
+            response: null
+        };
     }
 }
