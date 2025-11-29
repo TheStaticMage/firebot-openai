@@ -8,10 +8,13 @@ Requirements: Firebot 5.65+, an OpenAI API key, and access to the OpenAI Prompt 
 
 - Configure your OpenAI API key and preferred model (defaults to `gpt-4o`) under **Settings > Integrations > OpenAI** before running any effects. See the [OpenAI Setup Guide](/doc/openai-setup.md) for details.
 - Call the OpenAI Prompt Caching API directly from Firebot using saved Playground prompt IDs (with optional version pinning).
-- Firebot effect **OpenAI: Run Prompt** accepts input text and an optional max length guard, sends a structured JSON payload (system guard + user input + username), and calls your cached prompt.
+- Firebot effect **OpenAI: Run Prompt** accepts key-value input mappings and an optional max length guard, sends a structured JSON payload (system guard + custom fields), and calls your cached prompt.
 - Returns two outputs for downstream effects:
   - `$effectOutput[openaiError]` (blank on success)
   - `$effectOutput[openaiResponse]` (the raw JSON body, even when the model wraps it in ```json``` code fences).
+- You can use constructs like these to dig into the OpenAI response:
+  - `$objectWalkPath[$effectOutput[openaiResponse], error_response]]` - A more detailed error message
+  - `$objectWalkPath[$effectOutput[openaiResponse], some_field]]` - An output field defined in your prompt
 
 Example use cases:
 
@@ -23,8 +26,9 @@ Example use cases:
 ## Documentation
 
 - [Installation](/doc/installation.md)
-- [OpenAI Setup Guide](/doc/openai-setup.md)
 - [Upgrading](/doc/upgrading.md)
+- [OpenAI Setup Guide](/doc/openai-setup.md)
+- [Prompt Template](/doc/prompt-template.md)
 
 ## Support
 

@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { runPromptEffect, SYSTEM_INPUT } from '../run-prompt';
+import { normalizeResponsePayload } from '../run-prompt';
 import * as openaiModule from '../../internal/openai';
 
 jest.mock('../../internal/openai');
@@ -31,7 +32,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
-                inputText: 'Test input'
+                inputMappings: [{ key: 'user_input', value: 'Test input' }]
             },
             trigger: {
                 metadata: {
@@ -48,7 +49,11 @@ describe('Run OpenAI Prompt Effect', () => {
         expect(mockedCallOpenAI).toHaveBeenCalled();
         const [, , payload] = mockedCallOpenAI.mock.calls[0];
         const parsedPayload = JSON.parse(payload);
-        expect(parsedPayload).toEqual({ system_input: SYSTEM_INPUT, user_input: 'Test input', username: 'testuser' });
+        expect(parsedPayload).toEqual({
+            system_input: SYSTEM_INPUT,
+            user_input: { user_input: 'Test input' },
+            username: 'testuser'
+        });
     });
 
     it('should handle API errors and return error output', async () => {
@@ -62,7 +67,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
-                inputText: 'Test input'
+                inputMappings: [{ key: 'user_input', value: 'Test input' }]
             },
             trigger: {
                 metadata: {
@@ -79,7 +84,11 @@ describe('Run OpenAI Prompt Effect', () => {
         expect(mockedCallOpenAI).toHaveBeenCalled();
         const [, , payload] = mockedCallOpenAI.mock.calls[0];
         const parsedPayload = JSON.parse(payload);
-        expect(parsedPayload).toEqual({ system_input: SYSTEM_INPUT, user_input: 'Test input', username: 'testuser' });
+        expect(parsedPayload).toEqual({
+            system_input: SYSTEM_INPUT,
+            user_input: { user_input: 'Test input' },
+            username: 'testuser'
+        });
     });
 
     it('should trim whitespace from parameters', async () => {
@@ -92,7 +101,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: '  test-prompt-id  ',
                 promptVersion: '  1.0  ',
-                inputText: '  Test input  '
+                inputMappings: [{ key: '  user_input  ', value: '  Test input  ' }]
             },
             trigger: {
                 metadata: {
@@ -106,7 +115,11 @@ describe('Run OpenAI Prompt Effect', () => {
         expect(mockedCallOpenAI).toHaveBeenCalled();
         const [, , payload] = mockedCallOpenAI.mock.calls[0];
         const parsedPayload = JSON.parse(payload);
-        expect(parsedPayload).toEqual({ system_input: SYSTEM_INPUT, user_input: 'Test input', username: 'testuser' });
+        expect(parsedPayload).toEqual({
+            system_input: SYSTEM_INPUT,
+            user_input: { user_input: 'Test input' },
+            username: 'testuser'
+        });
     });
 
     it('should handle null response', async () => {
@@ -119,7 +132,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
-                inputText: 'Test input'
+                inputMappings: [{ key: 'user_input', value: 'Test input' }]
             },
             trigger: {
                 metadata: {
@@ -142,7 +155,7 @@ describe('Run OpenAI Prompt Effect', () => {
         const event = {
             effect: {
                 promptId: 'test-prompt-id',
-                inputText: 'Test input'
+                inputMappings: [{ key: 'user_input', value: 'Test input' }]
             },
             trigger: {
                 metadata: {
@@ -161,7 +174,11 @@ describe('Run OpenAI Prompt Effect', () => {
         );
         const [, , payload] = mockedCallOpenAI.mock.calls[0];
         const parsedPayload = JSON.parse(payload);
-        expect(parsedPayload).toEqual({ system_input: SYSTEM_INPUT, user_input: 'Test input', username: 'testuser' });
+        expect(parsedPayload).toEqual({
+            system_input: SYSTEM_INPUT,
+            user_input: { user_input: 'Test input' },
+            username: 'testuser'
+        });
     });
 
     it('should handle complex JSON response', async () => {
@@ -188,7 +205,7 @@ describe('Run OpenAI Prompt Effect', () => {
             effect: {
                 promptId: 'test-prompt-id',
                 promptVersion: '1.0',
-                inputText: 'Test input'
+                inputMappings: [{ key: 'user_input', value: 'Test input' }]
             },
             trigger: {
                 metadata: {
@@ -204,15 +221,19 @@ describe('Run OpenAI Prompt Effect', () => {
         expect(mockedCallOpenAI).toHaveBeenCalled();
         const [, , payload] = mockedCallOpenAI.mock.calls[0];
         const parsedPayload = JSON.parse(payload);
-        expect(parsedPayload).toEqual({ system_input: SYSTEM_INPUT, user_input: 'Test input', username: 'testuser' });
+        expect(parsedPayload).toEqual({
+            system_input: SYSTEM_INPUT,
+            user_input: { user_input: 'Test input' },
+            username: 'testuser'
+        });
     });
 
     it('should fail when input exceeds max length', async () => {
         const event = {
             effect: {
                 promptId: 'test-prompt-id',
-                inputText: 'This input is too long',
-                maxLength: 5
+                inputMappings: [{ key: 'user_input', value: 'This input is too long' }],
+                maxLength: 30
             },
             trigger: {
                 metadata: {
@@ -232,7 +253,7 @@ describe('Run OpenAI Prompt Effect', () => {
         const event = {
             effect: {
                 promptId: 'test-prompt-id',
-                inputText: 'valid input',
+                inputMappings: [{ key: 'user_input', value: 'valid input' }],
                 maxLength: -1
             },
             trigger: {
@@ -247,5 +268,162 @@ describe('Run OpenAI Prompt Effect', () => {
         expect(result.success).toBe(false);
         expect(result.outputs.openaiError).toContain('zero or a positive number');
         expect(mockedCallOpenAI).not.toHaveBeenCalled();
+    });
+
+    it('should normalize special characters when enabled', async () => {
+        const responseWithSpecialChars = {
+            summary: 'A heading— with emphasis…',
+            notes: ['First—item', 'Second — item']
+        };
+
+        mockedCallOpenAI.mockResolvedValue({
+            error: 'Bad — thing…',
+            response: responseWithSpecialChars
+        });
+
+        const event = {
+            effect: {
+                promptId: 'test-prompt-id',
+                promptVersion: '1.0',
+                inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                normalizeSpecialChars: true
+            },
+            trigger: {
+                metadata: {
+                    username: 'testuser'
+                }
+            }
+        } as any;
+
+        const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+        const expectedResponse = {
+            summary: 'A heading - with emphasis...',
+            notes: ['First - item', 'Second - item']
+        };
+
+        expect(result.outputs.openaiError).toBe('Bad — thing…');
+        expect(result.outputs.openaiResponse).toBe(JSON.stringify(expectedResponse));
+    });
+
+    it('should normalize response payload strings, arrays, and objects', () => {
+        const payload = {
+            heading: 'Title—goes here…',
+            list: ['Item—one', 'Item — two', 3],
+            nested: {
+                note: 'More—text'
+            },
+            passthrough: 42
+        };
+
+        const normalized = normalizeResponsePayload(payload, { normalizeSpecialChars: true, removeEmojis: false, removeNonAscii: false }) as Record<string, unknown>;
+
+        expect(normalized.heading).toBe('Title - goes here...');
+        expect(normalized.list).toEqual(['Item - one', 'Item - two', 3]);
+        expect((normalized.nested as Record<string, unknown>).note).toBe('More - text');
+        expect(normalized.passthrough).toBe(42);
+    });
+
+    it('should remove emojis when requested', async () => {
+        const responseWithEmojis = {
+            message: 'Hello 😊 — world',
+            tags: ['Nice 😎', 'Plain']
+        };
+
+        mockedCallOpenAI.mockResolvedValue({
+            error: 'Oops 😢',
+            response: responseWithEmojis
+        });
+
+        const event = {
+            effect: {
+                promptId: 'test-prompt-id',
+                promptVersion: '1.0',
+                inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                removeEmojis: true
+            },
+            trigger: {
+                metadata: {
+                    username: 'testuser'
+                }
+            }
+        } as any;
+
+        const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+        const expectedResponse = {
+            message: 'Hello  — world',
+            tags: ['Nice ', 'Plain']
+        };
+
+        expect(result.outputs.openaiError).toBe('Oops 😢');
+        expect(result.outputs.openaiResponse).toBe(JSON.stringify(expectedResponse));
+    });
+
+    it('should reject empty values', () => {
+        if (!runPromptEffect.optionsValidator) {
+            throw new Error('optionsValidator is not defined');
+        }
+
+        const options = {
+            promptId: 'test-prompt-id',
+            inputMappings: [{ key: 'user_input', value: '' }]
+        } as any;
+
+        const errors = runPromptEffect.optionsValidator(options);
+        expect(errors.some(err => /value cannot be empty/i.test(err))).toBe(true);
+    });
+
+    it('should reject reserved key names', () => {
+        const reservedKeys = ['system_input', 'user_input', 'username', 'system', 'prompt', 'instruction', 'jailbreak'];
+        const validator = runPromptEffect.optionsValidator;
+
+        if (!validator) {
+            throw new Error('optionsValidator is not defined');
+        }
+
+        reservedKeys.forEach((key) => {
+            const options = {
+                promptId: 'test-prompt-id',
+                inputMappings: [{ key, value: 'Test value' }]
+            } as any;
+
+            const errors = validator(options);
+            const hasReservedKeyError = errors.some(err => /reserved/i.test(err));
+            expect(hasReservedKeyError).toBe(true);
+        });
+    });
+
+    it('should remove non-ASCII characters when requested', async () => {
+        const responseWithUnicode = {
+            message: 'Hello — world 漢字',
+            tags: ['Nice 😎', 'Plain', '混合']
+        };
+
+        mockedCallOpenAI.mockResolvedValue({
+            error: 'Oops 😢 漢字',
+            response: responseWithUnicode
+        });
+
+        const event = {
+            effect: {
+                promptId: 'test-prompt-id',
+                promptVersion: '1.0',
+                inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                removeNonAscii: true
+            },
+            trigger: {
+                metadata: {
+                    username: 'testuser'
+                }
+            }
+        } as any;
+
+        const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+        const expectedResponse = {
+            message: 'Hello  world ',
+            tags: ['Nice ', 'Plain', '']
+        };
+
+        expect(result.outputs.openaiError).toBe('Oops 😢 漢字');
+        expect(result.outputs.openaiResponse).toBe(JSON.stringify(expectedResponse));
     });
 });
