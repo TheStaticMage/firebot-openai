@@ -2,6 +2,8 @@ import OpenAI from 'openai';
 import { integration } from '../integration-singleton';
 import { logger } from '../main';
 
+export const AVAILABLE_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
+
 export interface MessageInput {
     role: 'user' | 'assistant';
     content: string | ContentBlock[];
@@ -37,11 +39,11 @@ function getOpenAIClient(): OpenAI {
 export async function callOpenAI<T>(
     promptId: string,
     promptVersion: string | undefined,
-    message: string
+    message: string,
+    modelId: string
 ): Promise<OpenAIResponse<T>> {
     try {
         const openaiClient = getOpenAIClient();
-        const model = integration.getModel();
         const promptPayload: { id: string; version?: string } = {
             id: promptId
         };
@@ -53,7 +55,7 @@ export async function callOpenAI<T>(
         const response = await openaiClient.responses.create({
             prompt: promptPayload,
             input: message,
-            model: model,
+            model: modelId,
             max_output_tokens: 2048 // eslint-disable-line camelcase
         });
 

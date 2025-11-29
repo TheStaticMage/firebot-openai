@@ -1,14 +1,12 @@
 import { EventEmitter } from 'events';
 import { IntegrationData } from "@crowbartools/firebot-custom-scripts-types";
 import { runPromptEffect } from "./effects/run-prompt";
+import { AVAILABLE_MODELS } from "./internal/openai";
 import { firebot, logger } from "./main";
 
 type IntegrationParameters = {
     authentication: {
         apiKey: string;
-    };
-    model: {
-        modelId: string;
     };
 };
 
@@ -19,9 +17,6 @@ export class OpenAIIntegration extends EventEmitter {
     private settings: IntegrationParameters = {
         authentication: {
             apiKey: ""
-        },
-        model: {
-            modelId: "gpt-4o"
         }
     };
 
@@ -33,8 +28,11 @@ export class OpenAIIntegration extends EventEmitter {
             this.settings = JSON.parse(JSON.stringify(integrationData.userSettings));
         }
 
+        // Register IPC listeners
+        const { frontendCommunicator, effectManager } = firebot.modules;
+        frontendCommunicator.onAsync('openai:getModels', async () => AVAILABLE_MODELS);
+
         // Load effects
-        const { effectManager } = firebot.modules;
         effectManager.registerEffect(runPromptEffect);
 
         logger.info("OpenAI integration initialized");
@@ -53,10 +51,6 @@ export class OpenAIIntegration extends EventEmitter {
 
     getApiKey(): string {
         return this.settings.authentication.apiKey;
-    }
-
-    getModel(): string {
-        return this.settings.model.modelId;
     }
 }
 

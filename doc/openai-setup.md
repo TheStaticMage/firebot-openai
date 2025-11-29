@@ -18,7 +18,6 @@ This walkthrough takes you from a fresh OpenAI account to a working Firebot effe
 
 - In Firebot, go to **Settings > Integrations > OpenAI**.
 - Set **OpenAI API Key** to the key you just copied.
-- Leave **Model ID** as `gpt-4o` unless you have a reason to use another compatible model.
 - Save. No restart is needed.
 
 ## 4) Write your prompt using the template
@@ -56,6 +55,7 @@ Tip: While in the Playground, you can test with sample input. Use the input JSON
 - Add or edit the event where you want OpenAI to run.
 - Add the effect **OpenAI: Run Prompt**.
 - Set:
+  - **Model:** Select the OpenAI model to use (defaults to `gpt-4o`; other options include `gpt-4o-mini`, `gpt-4-turbo`, `gpt-4`, and `gpt-3.5-turbo`).
   - **Prompt ID:** Paste the `pmpt_...` ID from the Playground.
   - **Prompt Version (optional):** Leave blank to always use the latest saved version.
   - **Input Mappings:** Add key-value pairs to send to your prompt. Keys are the field names in the JSON sent to OpenAI; values can use Firebot variables. For example:

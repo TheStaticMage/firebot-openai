@@ -23,19 +23,6 @@ export const definition: IntegrationDefinition = {
                     sortRank: 1
                 }
             }
-        },
-        model: {
-            title: "Model",
-            sortRank: 2,
-            settings: {
-                modelId: {
-                    title: "Model ID",
-                    tip: "The OpenAI model to use for API calls (e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo).",
-                    type: "string",
-                    default: "gpt-4o",
-                    sortRank: 1
-                }
-            }
         }
     }
 };
