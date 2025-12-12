@@ -180,10 +180,9 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
 
         return errors;
     },
-    onTriggerEvent: async (event: any) => {
-        const effect = event.effect as TextToSpeechEffectModel;
-        const modules = firebot.modules as any;
-        const { frontendCommunicator, webServer, resourceTokenManager } = modules;
+    onTriggerEvent: async (event) => {
+        const { effect } = event;
+        const { frontendCommunicator, resourceTokenManager } = firebot.modules;
 
         try {
             const model = effect.model || 'tts-1';
@@ -245,21 +244,22 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
 
             // Route audio based on output device
             if (selectedOutputDevice?.deviceId === 'overlay') {
+                const { httpServer } = firebot.modules;
                 const resourceToken = resourceTokenManager.storeResourcePath(audioFilePath, 30);
                 audioData.resourceToken = resourceToken;
                 audioData.overlayInstance = effect.overlayInstance;
-                webServer.sendToOverlay('sound', audioData);
+                audioData.isUrl = false;
+                httpServer.sendToOverlay('sound', audioData);
             } else {
                 frontendCommunicator.send('playsound', audioData);
             }
 
             // Get sound duration and schedule cleanup
             try {
-                const duration = await frontendCommunicator.fireEventAsync('getSoundDuration', {
+                const duration = await frontendCommunicator.fireEventAsync<number>('getSoundDuration', {
                     path: audioFilePath
                 });
-
-                const durationInMs = (Math.round(duration as number) || 0) * 1000;
+                const durationInMs = (Math.round(duration) || 0) * 1000;
                 const cleanupPromise = new Promise<void>((resolve) => {
                     setTimeout(async () => {
                         try {
