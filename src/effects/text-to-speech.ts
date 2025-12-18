@@ -244,6 +244,7 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
 
             // Route audio based on output device
             if (selectedOutputDevice?.deviceId === 'overlay') {
+                logger.debug('Routing TTS audio to overlay');
                 const { httpServer } = firebot.modules;
                 const resourceToken = resourceTokenManager.storeResourcePath(audioFilePath, 30);
                 audioData.resourceToken = resourceToken;
@@ -251,6 +252,7 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
                 audioData.isUrl = false;
                 httpServer.sendToOverlay('sound', audioData);
             } else {
+                logger.debug(`Routing TTS audio to frontend for playback: deviceId=${selectedOutputDevice?.deviceId}`);
                 frontendCommunicator.send('playsound', audioData);
             }
 
@@ -274,10 +276,14 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
                 });
 
                 if (waitForSound) {
+                    logger.debug(`Waiting for TTS sound (${path.basename(audioFilePath)}) to finish (${durationInMs} ms)`);
                     await cleanupPromise;
+                    logger.debug(`TTS sound (${path.basename(audioFilePath)}) finished and cleaned up`);
+                } else {
+                    logger.debug(`Not waiting for TTS sound (${path.basename(audioFilePath)}) to finish`);
                 }
             } catch (err) {
-                logger.debug(`Failed to get sound duration, proceeding without cleanup: ${err}`);
+                logger.debug(`Failed to get sound duration (${path.basename(audioFilePath)}), proceeding without cleanup: ${err}`);
             }
 
             return {

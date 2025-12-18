@@ -16,17 +16,19 @@ jest.mock('../../main', () => ({
                 send: jest.fn(),
                 onAsync: jest.fn()
             },
-            webServer: {
+            httpServer: {
                 sendToOverlay: jest.fn()
             },
             resourceTokenManager: {
                 storeResourcePath: jest.fn().mockReturnValue('test-token')
             },
-            settingsManager: {
-                getSetting: jest.fn().mockReturnValue({ deviceId: 'default', label: 'System Default' })
-            },
             effectManager: {
                 registerEffect: jest.fn()
+            }
+        },
+        firebot: {
+            settings: {
+                getSetting: jest.fn().mockReturnValue({ deviceId: 'default', label: 'System Default' })
             }
         }
     }
@@ -35,9 +37,6 @@ jest.mock('fs');
 jest.mock('fs/promises');
 jest.mock('crypto', () => ({
     randomUUID: jest.fn(() => 'test-uuid-123')
-}));
-jest.mock('path', () => ({
-    join: jest.fn((...args) => args.join('/'))
 }));
 jest.mock('os', () => ({
     tmpdir: jest.fn(() => '/tmp')
@@ -114,7 +113,7 @@ describe('Text-to-Speech Effect', () => {
             } as any;
 
             const resultPromise = textToSpeechEffect.onTriggerEvent(event);
-            await jest.advanceTimersByTimeAsync(5000);
+            await jest.runAllTimersAsync();
             const result = await resultPromise as any;
 
             expect(result.success).toBe(true);
