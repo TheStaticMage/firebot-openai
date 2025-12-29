@@ -8,7 +8,7 @@ export let firebot: RunRequest<any>;
 export let logger: LogWrapper;
 
 const pluginName = 'firebot-openai';
-const scriptVersion = '0.0.2';
+const scriptVersion = '0.0.3';
 
 const script: Firebot.CustomScript<any> = {
     getScriptManifest: () => {
