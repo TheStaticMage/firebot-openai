@@ -93,6 +93,23 @@ describe('Text-to-Speech Effect', () => {
     });
 
     describe('onTriggerEvent', () => {
+        it('should fail when text is empty after trimming', async () => {
+            const event = {
+                effect: {
+                    model: 'tts-1',
+                    voice: 'alloy',
+                    text: '   \n\t  ',
+                    speed: 1.0
+                }
+            } as any;
+
+            const result = await textToSpeechEffect.onTriggerEvent(event) as any;
+
+            expect(result.success).toBe(false);
+            expect(result.outputs.ttsError).toBe('Please enter text to speak.');
+            expect(mockedSynthesizeSpeech).not.toHaveBeenCalled();
+        });
+
         it('should successfully synthesize speech', async () => {
             const mockBuffer = Buffer.from('mock audio data');
             mockedSynthesizeSpeech.mockResolvedValue({

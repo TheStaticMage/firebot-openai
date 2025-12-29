@@ -192,6 +192,18 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
             const volume = effect.volume ?? 5;
             const prompt = effect.prompt;
             const waitForSound = effect.waitForSound ?? true;
+            const trimmedText = text.trim();
+
+            if (!trimmedText) {
+                const errorMsg = 'Please enter text to speak.';
+                logger.debug('TTS skipped because the text input is empty after trimming.');
+                return {
+                    success: false,
+                    outputs: {
+                        ttsError: errorMsg
+                    }
+                };
+            }
 
             logger.debug(`Text-to-Speech: Converting text with model ${model} and voice ${voice}`);
 
