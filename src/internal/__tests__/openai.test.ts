@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import OpenAI from 'openai';
 import { integration } from '../../integration-singleton';
-import { callOpenAI, OpenAIResponse } from '../openai';
+import { callOpenAI, moderateText, OpenAIResponse } from '../openai';
 
 // Mock the OpenAI module and dependencies
 jest.mock('openai');
@@ -308,6 +308,160 @@ describe('OpenAI Client', () => {
             english_score: 100,
             troll_score: 20,
             content_score: 1
+        });
+    });
+});
+
+describe('OpenAI Moderation', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        (integration.getApiKey as jest.Mock).mockReturnValue('test-api-key');
+    });
+
+    it('should successfully moderate text and return flagged result', async () => {
+        const mockResponse = {
+            id: 'modr-123',
+            model: 'omni-moderation-latest',
+            results: [
+                {
+                    flagged: true,
+                    categories: {
+                        sexual: false,
+                        hate: true,
+                        harassment: false,
+                        'self-harm': false,
+                        'sexual/minors': false,
+                        'hate/threatening': false,
+                        'violence/graphic': false,
+                        'self-harm/intent': false,
+                        'self-harm/instructions': false,
+                        'harassment/threatening': false,
+                        violence: false
+                    },
+                    category_scores: {
+                        sexual: 0.001,
+                        hate: 0.95,
+                        harassment: 0.01,
+                        'self-harm': 0.0,
+                        'sexual/minors': 0.0,
+                        'hate/threatening': 0.01,
+                        'violence/graphic': 0.0,
+                        'self-harm/intent': 0.0,
+                        'self-harm/instructions': 0.0,
+                        'harassment/threatening': 0.01,
+                        violence: 0.01
+                    }
+                }
+            ]
+        };
+
+        mockedOpenAI.prototype.moderations = {
+            create: jest.fn().mockResolvedValue(mockResponse)
+        } as any;
+
+        const result = await moderateText('This is hateful content', 'omni-moderation-latest');
+
+        expect(result.error).toBe('');
+        expect(result.response).toEqual(mockResponse);
+        expect(result.response?.results[0]?.flagged).toBe(true);
+    });
+
+    it('should successfully moderate text and return clean result', async () => {
+        const mockResponse = {
+            id: 'modr-456',
+            model: 'omni-moderation-latest',
+            results: [
+                {
+                    flagged: false,
+                    categories: {
+                        sexual: false,
+                        hate: false,
+                        harassment: false,
+                        'self-harm': false,
+                        'sexual/minors': false,
+                        'hate/threatening': false,
+                        'violence/graphic': false,
+                        'self-harm/intent': false,
+                        'self-harm/instructions': false,
+                        'harassment/threatening': false,
+                        violence: false
+                    },
+                    category_scores: {
+                        sexual: 0.001,
+                        hate: 0.001,
+                        harassment: 0.001,
+                        'self-harm': 0.0,
+                        'sexual/minors': 0.0,
+                        'hate/threatening': 0.0,
+                        'violence/graphic': 0.0,
+                        'self-harm/intent': 0.0,
+                        'self-harm/instructions': 0.0,
+                        'harassment/threatening': 0.0,
+                        violence: 0.001
+                    }
+                }
+            ]
+        };
+
+        mockedOpenAI.prototype.moderations = {
+            create: jest.fn().mockResolvedValue(mockResponse)
+        } as any;
+
+        const result = await moderateText('This is perfectly fine content', 'omni-moderation-latest');
+
+        expect(result.error).toBe('');
+        expect(result.response).toEqual(mockResponse);
+        expect(result.response?.results[0]?.flagged).toBe(false);
+    });
+
+    it('should handle moderation API key not configured', async () => {
+        jest.resetModules();
+        (integration.getApiKey as jest.Mock).mockReturnValue('');
+
+        const { moderateText: moderateTextFresh } = require('../openai');
+
+        const result = await moderateTextFresh('test', 'omni-moderation-latest');
+
+        expect(result.error).toBe('OpenAI API key not configured');
+        expect(result.response).toBeNull();
+    });
+
+    it('should handle moderation API error responses', async () => {
+        mockedOpenAI.prototype.moderations = {
+            create: jest.fn().mockRejectedValue(
+                new Error('429 Rate limit exceeded')
+            )
+        } as any;
+
+        const result = await moderateText('test content', 'omni-moderation-latest');
+
+        expect(result.error).toContain('429 Rate limit exceeded');
+        expect(result.response).toBeNull();
+    });
+
+    it('should call moderation API with correct parameters', async () => {
+        const mockResponse = {
+            id: 'modr-789',
+            model: 'text-moderation-latest',
+            results: [
+                {
+                    flagged: false,
+                    categories: {},
+                    category_scores: {}
+                }
+            ]
+        };
+
+        const mockCreate = jest.fn().mockResolvedValue(mockResponse);
+        mockedOpenAI.prototype.moderations = {
+            create: mockCreate
+        } as any;
+
+        await moderateText('test content', 'text-moderation-latest');
+
+        expect(mockCreate).toHaveBeenCalledWith({
+            input: 'test content',
+            model: 'text-moderation-latest'
         });
     });
 });
