@@ -21,16 +21,26 @@ Requirements: Firebot 5.65+, an OpenAI API key, and access to the OpenAI Prompt 
   - Optionally provide speaking instructions (prompt) for the `gpt-4o-mini-tts` model.
   - Route audio to system default, overlay, or custom audio device.
   - Optionally wait for audio to finish before proceeding to the next effect.
+- Firebot effect **OpenAI: Moderate Text** checks content for policy violations using OpenAI's Moderation API.
+  - Optionally stops effect execution if content is flagged (useful for filtering inappropriate chat messages or commands).
+  - Returns detailed moderation results including violation categories and confidence scores.
+  - Uses fail-closed strategy (treats errors as flagged content) for safety.
+- Replace variable **`$openaiModerationCheck[text]`** provides inline content moderation checks.
+  - Returns `"true"` if content is flagged, `"false"` if clean.
+  - Useful for conditional effects and simple moderation logic.
+  - Follows fail-closed behavior (returns `"true"` on errors).
 
 Example use cases:
 
 - Poetry generator that personalizes quick rhymes to the chatter's username.
 - Moderator helper that suggests a brief response for mods to paste.
+- Chat filter that blocks messages containing policy violations before they appear on stream.
 
 These also work well when combined:
 
 - TTS spam filter that classifies a message with the Run Prompt effect and reads approved messages with the TTS effect.
 - Joke generator that returns short, safe one-liners tailored to the viewer's name or topic and speaks them.
+- Content moderator that checks messages with the Moderate Text effect, logs violations, and only processes clean content.
 
 ## Documentation
 
@@ -39,6 +49,7 @@ These also work well when combined:
 - [OpenAI Setup Guide](/doc/openai-setup.md)
 - [Prompt Template](/doc/prompt-template.md)
 - [Text-To-Speech Guide](/doc/tts.md)
+- [Content Moderation Guide](/doc/moderation.md)
 
 ## Support
 

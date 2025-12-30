@@ -5,6 +5,7 @@ import { logger } from '../main';
 export const AVAILABLE_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
 export const AVAILABLE_TTS_MODELS = ['tts-1', 'tts-1-hd', 'gpt-4o-mini-tts'];
 export const AVAILABLE_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'];
+export const AVAILABLE_MODERATION_MODELS = ['omni-moderation-latest', 'text-moderation-latest'];
 
 export interface MessageInput {
     role: 'user' | 'assistant';
@@ -161,6 +162,36 @@ export async function synthesizeSpeech(
     } catch (error: any) {
         const errorMsg = error.message || 'Unknown error';
         logger.error(`OpenAI TTS API call failed: ${errorMsg}`);
+        return {
+            error: errorMsg,
+            response: null
+        };
+    }
+}
+
+/**
+ * Call the OpenAI Moderation API to check if text violates content policy
+ */
+export async function moderateText(text: string, model: string): Promise<OpenAIResponse<any>> {
+    try {
+        const openaiClient = getOpenAIClient();
+
+        logger.debug(`Calling OpenAI Moderation API with model: ${model}`);
+
+        const response = await openaiClient.moderations.create({
+            input: text,
+            model
+        });
+
+        logger.debug(`Moderation API response: flagged=${response.results[0]?.flagged}`);
+
+        return {
+            error: '',
+            response
+        };
+    } catch (error: any) {
+        const errorMsg = error.message || 'Unknown error';
+        logger.error(`OpenAI Moderation API call failed: ${errorMsg}`);
         return {
             error: errorMsg,
             response: null
