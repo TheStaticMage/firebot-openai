@@ -439,4 +439,301 @@ describe('Run OpenAI Prompt Effect', () => {
         expect(result.outputs.openaiError).toBe('Oops 😢 漢字');
         expect(result.outputs.openaiResponse).toBe(JSON.stringify(expectedResponse));
     });
+
+    it('should include all input mappings in the payload', async () => {
+        mockedCallOpenAI.mockResolvedValue({
+            error: '',
+            response: { result: 'success' }
+        });
+
+        const event = {
+            effect: {
+                promptId: 'test-prompt-id',
+                promptVersion: '1.0',
+                modelId: 'gpt-4o',
+                inputMappings: [
+                    { key: 'name', value: 'Alice' },
+                    { key: 'age', value: '30' },
+                    { key: 'city', value: 'Boston' }
+                ]
+            },
+            trigger: {
+                metadata: {
+                    username: 'testuser'
+                }
+            }
+        } as any;
+
+        await runPromptEffect.onTriggerEvent(event);
+
+        expect(mockedCallOpenAI).toHaveBeenCalled();
+        const [, , payload] = mockedCallOpenAI.mock.calls[0];
+        const parsedPayload = JSON.parse(payload);
+        expect(parsedPayload.user_input).toEqual({
+            name: 'Alice',
+            age: '30',
+            city: 'Boston'
+        });
+    });
+
+    describe('JSON Parsing Feature', () => {
+        it('should keep values as strings when parseInputAsJson is undefined', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'data', value: '{"key": "value"}' }]
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockedCallOpenAI).toHaveBeenCalled();
+            const [, , payload] = mockedCallOpenAI.mock.calls[0];
+            const parsedPayload = JSON.parse(payload);
+            expect(parsedPayload.user_input.data).toBe('{"key": "value"}');
+        });
+
+        it('should keep values as strings when parseInputAsJson is false', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'data', value: '{"key": "value"}' }],
+                    parseInputAsJson: false
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockedCallOpenAI).toHaveBeenCalled();
+            const [, , payload] = mockedCallOpenAI.mock.calls[0];
+            const parsedPayload = JSON.parse(payload);
+            expect(parsedPayload.user_input.data).toBe('{"key": "value"}');
+        });
+
+        it('should parse valid JSON object when parseInputAsJson is true', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'data', value: '{"name": "Alice", "age": 30}' }],
+                    parseInputAsJson: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockedCallOpenAI).toHaveBeenCalled();
+            const [, , payload] = mockedCallOpenAI.mock.calls[0];
+            const parsedPayload = JSON.parse(payload);
+            expect(parsedPayload.user_input.data).toEqual({ name: 'Alice', age: 30 });
+        });
+
+        it('should parse valid JSON array when parseInputAsJson is true', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'items', value: '["item1", "item2", "item3"]' }],
+                    parseInputAsJson: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockedCallOpenAI).toHaveBeenCalled();
+            const [, , payload] = mockedCallOpenAI.mock.calls[0];
+            const parsedPayload = JSON.parse(payload);
+            expect(parsedPayload.user_input.items).toEqual(['item1', 'item2', 'item3']);
+        });
+
+        it('should parse valid JSON number when parseInputAsJson is true', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'count', value: '42' }],
+                    parseInputAsJson: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockedCallOpenAI).toHaveBeenCalled();
+            const [, , payload] = mockedCallOpenAI.mock.calls[0];
+            const parsedPayload = JSON.parse(payload);
+            expect(parsedPayload.user_input.count).toBe(42);
+        });
+
+        it('should parse valid JSON boolean when parseInputAsJson is true', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'active', value: 'true' }],
+                    parseInputAsJson: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockedCallOpenAI).toHaveBeenCalled();
+            const [, , payload] = mockedCallOpenAI.mock.calls[0];
+            const parsedPayload = JSON.parse(payload);
+            expect(parsedPayload.user_input.active).toBe(true);
+        });
+
+        it('should parse valid JSON null when parseInputAsJson is true', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'empty', value: 'null' }],
+                    parseInputAsJson: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockedCallOpenAI).toHaveBeenCalled();
+            const [, , payload] = mockedCallOpenAI.mock.calls[0];
+            const parsedPayload = JSON.parse(payload);
+            expect(parsedPayload.user_input.empty).toBe(null);
+        });
+
+        it('should fall back to original string for invalid JSON when parseInputAsJson is true', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'data', value: 'not valid json' }],
+                    parseInputAsJson: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockedCallOpenAI).toHaveBeenCalled();
+            const [, , payload] = mockedCallOpenAI.mock.calls[0];
+            const parsedPayload = JSON.parse(payload);
+            expect(parsedPayload.user_input.data).toBe('not valid json');
+        });
+
+        it('should handle mixed valid and invalid JSON when parseInputAsJson is true', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    modelId: 'gpt-4o',
+                    inputMappings: [
+                        { key: 'validObject', value: '{"name": "Alice"}' },
+                        { key: 'invalidJson', value: 'not valid' },
+                        { key: 'validArray', value: '[1, 2, 3]' },
+                        { key: 'validNumber', value: '42' }
+                    ],
+                    parseInputAsJson: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockedCallOpenAI).toHaveBeenCalled();
+            const [, , payload] = mockedCallOpenAI.mock.calls[0];
+            const parsedPayload = JSON.parse(payload);
+            expect(parsedPayload.user_input.validObject).toEqual({ name: 'Alice' });
+            expect(parsedPayload.user_input.invalidJson).toBe('not valid');
+            expect(parsedPayload.user_input.validArray).toEqual([1, 2, 3]);
+            expect(parsedPayload.user_input.validNumber).toBe(42);
+        });
+    });
 });
