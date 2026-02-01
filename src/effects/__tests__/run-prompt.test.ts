@@ -4,6 +4,12 @@ import { normalizeResponsePayload } from '../run-prompt';
 import * as openaiModule from '../../internal/openai';
 
 jest.mock('../../internal/openai');
+jest.mock('crypto', () => ({
+    randomUUID: jest.fn(() => 'test-uuid-123')
+}));
+
+// Mock the main module with a mock for frontendCommunicator
+const mockSend = jest.fn();
 jest.mock('../../main', () => ({
     logger: {
         debug: jest.fn(),
@@ -11,6 +17,13 @@ jest.mock('../../main', () => ({
         info: jest.fn(),
         error: jest.fn(),
         warn: jest.fn()
+    },
+    firebot: {
+        modules: {
+            frontendCommunicator: {
+                send: (...args: any[]) => mockSend(...args)
+            }
+        }
     }
 }));
 
@@ -19,6 +32,7 @@ const mockedCallOpenAI = openaiModule.callOpenAI as jest.MockedFunction<typeof o
 describe('Run OpenAI Prompt Effect', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockSend.mockClear();
     });
 
     it('should successfully run a prompt and return outputs', async () => {
@@ -734,6 +748,513 @@ describe('Run OpenAI Prompt Effect', () => {
             expect(parsedPayload.user_input.invalidJson).toBe('not valid');
             expect(parsedPayload.user_input.validArray).toEqual([1, 2, 3]);
             expect(parsedPayload.user_input.validNumber).toBe(42);
+        });
+    });
+
+    describe('Error Handling', () => {
+        it('should stop execution when stopIfRequestFails is true and API fails', async () => {
+            const errorMessage = 'API key not configured';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.success).toBe(true);
+            expect(result.execution.stop).toBe(true);
+            expect(result.outputs.openaiError).toBe(errorMessage);
+        });
+
+        it('should not stop execution when stopIfRequestFails is false and API fails', async () => {
+            const errorMessage = 'API key not configured';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: false
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.success).toBe(true);
+            expect(result.execution).toBeUndefined();
+            expect(result.outputs.openaiError).toBe(errorMessage);
+        });
+
+        it('should not stop execution when stopIfRequestFails is true but API succeeds', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { result: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.success).toBe(true);
+            expect(result.execution).toBeUndefined();
+            expect(result.outputs.openaiError).toBe('');
+        });
+
+        it('should stop execution when stopIfResponseError is true and response has error field', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { error: 'Invalid prompt configuration', status: 'failed' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfResponseError: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.success).toBe(true);
+            expect(result.execution.stop).toBe(true);
+            expect(result.outputs.openaiResponse).toContain('error');
+        });
+
+        it('should not stop execution when stopIfResponseError is false and response has error field', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { error: 'Invalid prompt configuration', status: 'failed' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfResponseError: false
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.success).toBe(true);
+            expect(result.execution).toBeUndefined();
+            expect(result.outputs.openaiResponse).toContain('error');
+        });
+
+        it('should not stop execution when stopIfResponseError is true but response has no error', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { score: 85, status: 'success' }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfResponseError: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.success).toBe(true);
+            expect(result.execution).toBeUndefined();
+        });
+
+        it('should set bubbleStop when bubbleStop is true and stop condition is met', async () => {
+            const errorMessage = 'API key not configured';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true,
+                    bubbleStop: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.execution.stop).toBe(true);
+            expect(result.execution.bubbleStop).toBe(true);
+        });
+
+        it('should not set bubbleStop when bubbleStop is false', async () => {
+            const errorMessage = 'API key not configured';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true,
+                    bubbleStop: false
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.execution.stop).toBe(true);
+            expect(result.execution.bubbleStop).toBe(false);
+        });
+
+        it('should send chat alert when postChatAlertOnError is true and request fails', async () => {
+            const errorMessage = 'API key not configured';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    comment: 'Toxicity Check',
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true,
+                    postChatAlertOnError: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockSend).toHaveBeenCalledWith('chatUpdate', {
+                fbEvent: 'ChatAlert',
+                message: 'OpenAI prompt error: Toxicity Check: API key not configured',
+                icon: 'fad fa-exclamation-circle',
+                messageId: 'test-uuid-123'
+            });
+        });
+
+        it('should send chat alert when postChatAlertOnError is true and response has error', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { error: 'Rate limit exceeded', status: 'failed' }
+            });
+
+            const event = {
+                effect: {
+                    comment: 'Sentiment Analysis',
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfResponseError: true,
+                    postChatAlertOnError: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockSend).toHaveBeenCalledWith('chatUpdate', {
+                fbEvent: 'ChatAlert',
+                message: 'OpenAI prompt error: Sentiment Analysis: Rate limit exceeded',
+                icon: 'fad fa-exclamation-circle',
+                messageId: 'test-uuid-123'
+            });
+        });
+
+        it('should use promptId in chat alert when comment is not set', async () => {
+            const errorMessage = 'Network timeout';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'pmpt_abc123',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true,
+                    postChatAlertOnError: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockSend).toHaveBeenCalledWith('chatUpdate', {
+                fbEvent: 'ChatAlert',
+                message: 'OpenAI prompt error: pmpt_abc123: Network timeout',
+                icon: 'fad fa-exclamation-circle',
+                messageId: 'test-uuid-123'
+            });
+        });
+
+        it('should not send chat alert when postChatAlertOnError is false', async () => {
+            const errorMessage = 'API key not configured';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true,
+                    postChatAlertOnError: false
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockSend).not.toHaveBeenCalled();
+        });
+
+        it('should not send chat alert when no error occurs', async () => {
+            mockedCallOpenAI.mockResolvedValue({
+                error: '',
+                response: { score: 85 }
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true,
+                    postChatAlertOnError: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockSend).not.toHaveBeenCalled();
+        });
+
+        it('should handle both stop conditions being true', async () => {
+            const errorMessage = 'API key not configured';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true,
+                    stopIfResponseError: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.execution.stop).toBe(true);
+        });
+
+        it('should handle empty string comment by using promptId', async () => {
+            const errorMessage = 'Rate limit exceeded';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    comment: '',
+                    promptId: 'pmpt_xyz789',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true,
+                    postChatAlertOnError: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockSend).toHaveBeenCalledWith('chatUpdate', {
+                fbEvent: 'ChatAlert',
+                message: 'OpenAI prompt error: pmpt_xyz789: Rate limit exceeded',
+                icon: 'fad fa-exclamation-circle',
+                messageId: 'test-uuid-123'
+            });
+        });
+
+        it('should trim whitespace from comment in chat alert', async () => {
+            const errorMessage = 'Invalid configuration';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    comment: '  Content Moderation  ',
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }],
+                    stopIfRequestFails: true,
+                    postChatAlertOnError: true
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            await runPromptEffect.onTriggerEvent(event);
+
+            expect(mockSend).toHaveBeenCalledWith('chatUpdate', {
+                fbEvent: 'ChatAlert',
+                message: 'OpenAI prompt error: Content Moderation: Invalid configuration',
+                icon: 'fad fa-exclamation-circle',
+                messageId: 'test-uuid-123'
+            });
+        });
+
+        it('should not set execution property when no stop conditions are enabled', async () => {
+            const errorMessage = 'API key not configured';
+            mockedCallOpenAI.mockResolvedValue({
+                error: errorMessage,
+                response: null
+            });
+
+            const event = {
+                effect: {
+                    promptId: 'test-prompt-id',
+                    promptVersion: '1.0',
+                    modelId: 'gpt-4o',
+                    inputMappings: [{ key: 'user_input', value: 'Test input' }]
+                },
+                trigger: {
+                    metadata: {
+                        username: 'testuser'
+                    }
+                }
+            } as any;
+
+            const result = (await runPromptEffect.onTriggerEvent(event)) as any;
+
+            expect(result.success).toBe(true);
+            expect(result.execution).toBeUndefined();
         });
     });
 });
