@@ -2,7 +2,28 @@ import OpenAI from 'openai';
 import { integration } from '../integration-singleton';
 import { logger } from '../main';
 
-export const AVAILABLE_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
+export const AVAILABLE_MODELS = [
+    // GPT-5 Cost-Efficient (Default: gpt-5-nano is least expensive)
+    'gpt-5-nano',
+    'gpt-5-mini',
+    // GPT-5 Series (Latest Flagship)
+    'gpt-5.2',
+    'gpt-5.2-pro',
+    'gpt-5.1',
+    'gpt-5',
+    'gpt-5-pro',
+    // GPT-4.1 Series (Non-Reasoning)
+    'gpt-4.1',
+    'gpt-4.1-mini',
+    'gpt-4.1-nano',
+    // GPT-4o Series
+    'gpt-4o',
+    'gpt-4o-mini',
+    // Legacy (kept for backward compatibility)
+    'gpt-4-turbo',
+    'gpt-4',
+    'gpt-3.5-turbo'
+];
 export const AVAILABLE_TTS_MODELS = ['tts-1', 'tts-1-hd', 'gpt-4o-mini-tts'];
 export const AVAILABLE_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'];
 export const AVAILABLE_MODERATION_MODELS = ['omni-moderation-latest', 'text-moderation-latest'];

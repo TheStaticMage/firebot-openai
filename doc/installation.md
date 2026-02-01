@@ -23,7 +23,7 @@ You will need an OpenAI API key to use this plugin. Obtain your API key from [Op
 
 After installing the plugin and configuring the integration, add the **OpenAI: Run Prompt** effect to an event, channel reward, preset effect list, etc.:
 
-- Set **Model** to the OpenAI model you want to use (defaults to `gpt-4o`).
+- Set **Model** to the OpenAI model you want to use (defaults to `gpt-5-nano`, the least expensive option; see [OpenAI models](https://platform.openai.com/docs/models) for all available options and [pricing](https://platform.openai.com/docs/pricing) to compare costs). Consider selecting a more capable model if your use case requires higher quality responses.
 - Set **Prompt ID** to your Playground prompt cache ID.
 - (Optional) Set **Prompt Version** to pin a saved version; leave blank to use the latest.
 - Add **Input Mappings** with key-value pairs to send to your prompt.

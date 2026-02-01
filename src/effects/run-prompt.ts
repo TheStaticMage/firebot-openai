@@ -225,7 +225,7 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
     `,
     optionsController: ($scope: any, backendCommunicator: any) => {
         $scope.models = [];
-        $scope.effect.modelId = $scope.effect.modelId || 'gpt-4o';
+        $scope.effect.modelId = $scope.effect.modelId || 'gpt-5-nano';
 
         backendCommunicator.fireEventAsync('openai:getModels')
             .then((models: string[]) => {
@@ -233,7 +233,7 @@ export const runPromptEffect: Firebot.EffectType<RunPromptEffectModel> = {
             })
             .catch((error: any) => {
                 $scope.modelsError = `Failed to load models: ${error.message}`;
-                $scope.models = ['gpt-4o'];
+                $scope.models = ['gpt-5-nano'];
             });
     },
     optionsValidator: (options: RunPromptEffectModel) => {

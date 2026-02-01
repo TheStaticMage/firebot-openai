@@ -55,7 +55,7 @@ Tip: While in the Playground, you can test with sample input. Use the input JSON
 - Add or edit the event where you want OpenAI to run.
 - Add the effect **OpenAI: Run Prompt**.
 - Set:
-  - **Model:** Select the OpenAI model to use (defaults to `gpt-4o`; other options include `gpt-4o-mini`, `gpt-4-turbo`, `gpt-4`, and `gpt-3.5-turbo`).
+  - **Model:** Select the OpenAI model to use (defaults to `gpt-5-nano`, the least expensive option). Available models include GPT-5 series (5.2, 5.2-pro, 5.1, 5, 5-pro, 5-mini, 5-nano), GPT-4.1 series (4.1, 4.1-mini, 4.1-nano), GPT-4o series (4o, 4o-mini), and legacy models (4-turbo, 4, 3.5-turbo). See the [OpenAI models documentation](https://platform.openai.com/docs/models) for detailed descriptions and the [pricing page](https://platform.openai.com/docs/pricing) to compare costs. Consider your expected outcomes when selecting a model - higher capability models cost more per request.
   - **Prompt ID:** Paste the `pmpt_...` ID from the Playground.
   - **Prompt Version (optional):** Leave blank to always use the latest saved version.
   - **Input Mappings:** Add key-value pairs to send to your prompt. Keys are the field names in the JSON sent to OpenAI; values can use Firebot variables. For example:
