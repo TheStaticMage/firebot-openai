@@ -17,6 +17,7 @@ export interface TextToSpeechEffectModel {
     audioOutputDevice?: any;
     overlayInstance?: string;
     waitForSound?: boolean;
+    skipPlayback?: boolean;
 }
 
 const TTS_TEMP_DIR = path.join(os.tmpdir(), 'firebot-openai-tts');
@@ -33,6 +34,11 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
                 label: 'Error',
                 description: 'Error message if the TTS failed. Empty string if successful.',
                 defaultName: 'ttsError'
+            },
+            {
+                label: 'File Path',
+                description: 'Absolute path to the generated MP3 file. Empty string if generation failed.',
+                defaultName: 'ttsFilePath'
             }
         ]
     },
@@ -98,11 +104,18 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
 
         <eos-container header="Playback" pad-top="true">
             <label class="control-fb control--checkbox">
+                Generate only (skip playback)
+                <input type="checkbox" ng-model="effect.skipPlayback">
+                <div class="control__indicator"></div>
+            </label>
+            <p class="muted">When checked, audio will be generated but not played. Use the file path output to access the file.</p>
+
+            <label class="control-fb control--checkbox">
                 Wait until TTS is done
                 <input type="checkbox" ng-model="effect.waitForSound">
                 <div class="control__indicator"></div>
             </label>
-            <p class="muted">When checked, the effect will wait for the audio to finish playing before proceeding to the next effect.</p>
+            <p class="muted">When checked, the effect will wait for the audio to finish generating/playing before proceeding to the next effect.</p>
         </eos-container>
 
         <eos-audio-output-device effect="effect" pad-top="true"></eos-audio-output-device>
@@ -155,6 +168,10 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
         if ($scope.effect.waitForSound == null) {
             $scope.effect.waitForSound = true;
         }
+
+        if ($scope.effect.skipPlayback == null) {
+            $scope.effect.skipPlayback = false;
+        }
     },
     optionsValidator: (effect) => {
         const errors: string[] = [];
@@ -192,6 +209,7 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
             const volume = effect.volume ?? 5;
             const prompt = effect.prompt;
             const waitForSound = effect.waitForSound ?? true;
+            const skipPlayback = effect.skipPlayback ?? false;
             const trimmedText = text.trim();
 
             if (!trimmedText) {
@@ -200,7 +218,8 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
                 return {
                     success: false,
                     outputs: {
-                        ttsError: errorMsg
+                        ttsError: errorMsg,
+                        ttsFilePath: ''
                     }
                 };
             }
@@ -214,7 +233,8 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
                 return {
                     success: false,
                     outputs: {
-                        ttsError: ttsResult.error
+                        ttsError: ttsResult.error,
+                        ttsFilePath: ''
                     }
                 };
             }
@@ -225,7 +245,8 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
                 return {
                     success: false,
                     outputs: {
-                        ttsError: errorMsg
+                        ttsError: errorMsg,
+                        ttsFilePath: ''
                     }
                 };
             }
@@ -241,6 +262,18 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
             await fsp.writeFile(audioFilePath, ttsResult.response);
 
             logger.debug(`Audio file written to: ${audioFilePath}`);
+
+            // If skipPlayback is enabled, return immediately with file path
+            if (skipPlayback) {
+                logger.debug('Skipping playback, returning file path');
+                return {
+                    success: true,
+                    outputs: {
+                        ttsError: '',
+                        ttsFilePath: audioFilePath
+                    }
+                };
+            }
 
             // Determine audio output device
             let selectedOutputDevice = effect.audioOutputDevice;
@@ -301,7 +334,8 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
             return {
                 success: true,
                 outputs: {
-                    ttsError: ''
+                    ttsError: '',
+                    ttsFilePath: audioFilePath
                 }
             };
         } catch (err: any) {
@@ -310,7 +344,8 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
             return {
                 success: false,
                 outputs: {
-                    ttsError: errorMsg
+                    ttsError: errorMsg,
+                    ttsFilePath: ''
                 }
             };
         }
