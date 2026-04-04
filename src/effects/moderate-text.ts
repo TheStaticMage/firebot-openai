@@ -1,6 +1,6 @@
-import { moderateText } from '../internal/openai';
-import { logger } from '../main';
 import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
+import { moderateText } from "../internal/openai";
+import { logger } from "../main";
 
 export interface ModerateTextEffectModel {
     text: string;
@@ -11,26 +11,26 @@ export interface ModerateTextEffectModel {
 
 export const moderateTextEffect: Firebot.EffectType<ModerateTextEffectModel> = {
     definition: {
-        id: 'openai:moderateText',
-        name: 'OpenAI: Moderate Text',
-        description: 'Check text for policy violations using OpenAI Moderation API',
-        icon: 'fad fa-shield-check',
-        categories: ['common'],
+        id: "openai:moderateText",
+        name: "OpenAI: Moderate Text",
+        description: "Check text for policy violations using OpenAI Moderation API",
+        icon: "fad fa-shield-check",
+        categories: ["common"],
         outputs: [
             {
-                label: 'Moderation Flagged',
-                description: 'Boolean indicating if content was flagged',
-                defaultName: 'moderationFlagged'
+                label: "Moderation Flagged",
+                description: "Boolean indicating if content was flagged",
+                defaultName: "moderationFlagged"
             },
             {
-                label: 'Moderation Result',
-                description: 'Full moderation response as JSON',
-                defaultName: 'moderationResult'
+                label: "Moderation Result",
+                description: "Full moderation response as JSON",
+                defaultName: "moderationResult"
             },
             {
-                label: 'Moderation Error',
-                description: 'Error message if moderation failed',
-                defaultName: 'moderationError'
+                label: "Moderation Error",
+                description: "Error message if moderation failed",
+                defaultName: "moderationError"
             }
         ]
     },
@@ -65,22 +65,22 @@ export const moderateTextEffect: Firebot.EffectType<ModerateTextEffectModel> = {
         </eos-container>
     `,
     optionsController: ($scope: any) => {
-        $scope.effect.modelId = $scope.effect.modelId || 'omni-moderation-latest';
+        $scope.effect.modelId = $scope.effect.modelId || "omni-moderation-latest";
         $scope.effect.stopIfFlagged = $scope.effect.stopIfFlagged ?? false;
         $scope.effect.bubbleStop = $scope.effect.bubbleStop ?? false;
     },
     optionsValidator: (effect: ModerateTextEffectModel) => {
         const errors: string[] = [];
-        if (!effect.text || effect.text.trim() === '') {
-            errors.push('Text to moderate is required.');
+        if (!effect.text || effect.text.trim() === "") {
+            errors.push("Text to moderate is required.");
         }
         return errors;
     },
     onTriggerEvent: async ({ effect }) => {
         logger.debug(`Moderate Text effect triggered with model: ${effect.modelId}`);
 
-        if (!effect.text || effect.text.trim() === '') {
-            logger.warn('Moderate Text effect: No text provided');
+        if (!effect.text || effect.text.trim() === "") {
+            logger.warn("Moderate Text effect: No text provided");
             return {
                 success: true,
                 execution: {
@@ -89,13 +89,13 @@ export const moderateTextEffect: Firebot.EffectType<ModerateTextEffectModel> = {
                 },
                 outputs: {
                     moderationFlagged: true,
-                    moderationResult: '',
-                    moderationError: 'No text provided for moderation'
+                    moderationResult: "",
+                    moderationError: "No text provided for moderation"
                 }
             };
         }
 
-        const modelId = effect.modelId || 'omni-moderation-latest';
+        const modelId = effect.modelId || "omni-moderation-latest";
         const result = await moderateText(effect.text, modelId);
 
         if (result.error) {
@@ -108,14 +108,14 @@ export const moderateTextEffect: Firebot.EffectType<ModerateTextEffectModel> = {
                 },
                 outputs: {
                     moderationFlagged: true,
-                    moderationResult: '',
+                    moderationResult: "",
                     moderationError: result.error
                 }
             };
         }
 
         if (!result.response) {
-            logger.error('Moderation failed: No response from API');
+            logger.error("Moderation failed: No response from API");
             return {
                 success: true,
                 execution: {
@@ -124,8 +124,8 @@ export const moderateTextEffect: Firebot.EffectType<ModerateTextEffectModel> = {
                 },
                 outputs: {
                     moderationFlagged: true,
-                    moderationResult: '',
-                    moderationError: 'No response from moderation API'
+                    moderationResult: "",
+                    moderationError: "No response from moderation API"
                 }
             };
         }
@@ -134,7 +134,7 @@ export const moderateTextEffect: Firebot.EffectType<ModerateTextEffectModel> = {
         logger.debug(`Moderation result: flagged=${flagged}`);
 
         if (effect.stopIfFlagged && flagged) {
-            logger.info('Content flagged and stopIfFlagged enabled, stopping effect execution');
+            logger.info("Content flagged and stopIfFlagged enabled, stopping effect execution");
             return {
                 success: true,
                 execution: {
@@ -144,7 +144,7 @@ export const moderateTextEffect: Firebot.EffectType<ModerateTextEffectModel> = {
                 outputs: {
                     moderationFlagged: flagged,
                     moderationResult: JSON.stringify(result.response),
-                    moderationError: ''
+                    moderationError: ""
                 }
             };
         }
@@ -154,7 +154,7 @@ export const moderateTextEffect: Firebot.EffectType<ModerateTextEffectModel> = {
             outputs: {
                 moderationFlagged: flagged,
                 moderationResult: JSON.stringify(result.response),
-                moderationError: ''
+                moderationError: ""
             }
         };
     }

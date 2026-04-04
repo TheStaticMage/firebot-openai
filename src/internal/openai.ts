@@ -1,35 +1,35 @@
-import OpenAI from 'openai';
-import { integration } from '../integration-singleton';
-import { logger } from '../main';
+import OpenAI from "openai";
+import { integration } from "../integration-singleton";
+import { logger } from "../main";
 
 export const AVAILABLE_MODELS = [
     // GPT-5 Cost-Efficient (Default: gpt-5-nano is least expensive)
-    'gpt-5-nano',
-    'gpt-5-mini',
+    "gpt-5-nano",
+    "gpt-5-mini",
     // GPT-5 Series (Latest Flagship)
-    'gpt-5.2',
-    'gpt-5.2-pro',
-    'gpt-5.1',
-    'gpt-5',
-    'gpt-5-pro',
+    "gpt-5.2",
+    "gpt-5.2-pro",
+    "gpt-5.1",
+    "gpt-5",
+    "gpt-5-pro",
     // GPT-4.1 Series (Non-Reasoning)
-    'gpt-4.1',
-    'gpt-4.1-mini',
-    'gpt-4.1-nano',
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
     // GPT-4o Series
-    'gpt-4o',
-    'gpt-4o-mini',
+    "gpt-4o",
+    "gpt-4o-mini",
     // Legacy (kept for backward compatibility)
-    'gpt-4-turbo',
-    'gpt-4',
-    'gpt-3.5-turbo'
+    "gpt-4-turbo",
+    "gpt-4",
+    "gpt-3.5-turbo"
 ];
-export const AVAILABLE_TTS_MODELS = ['tts-1', 'tts-1-hd', 'gpt-4o-mini-tts'];
-export const AVAILABLE_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'];
-export const AVAILABLE_MODERATION_MODELS = ['omni-moderation-latest', 'text-moderation-latest'];
+export const AVAILABLE_TTS_MODELS = ["tts-1", "tts-1-hd", "gpt-4o-mini-tts"];
+export const AVAILABLE_VOICES = ["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse"];
+export const AVAILABLE_MODERATION_MODELS = ["omni-moderation-latest", "text-moderation-latest"];
 
 export interface MessageInput {
-    role: 'user' | 'assistant';
+    role: "user" | "assistant";
     content: string | ContentBlock[];
 }
 
@@ -50,7 +50,7 @@ function getOpenAIClient(): OpenAI {
     if (!client) {
         const apiKey = integration.getApiKey();
         if (!apiKey) {
-            throw new Error('OpenAI API key not configured');
+            throw new Error("OpenAI API key not configured");
         }
         client = new OpenAI({ apiKey });
     }
@@ -60,12 +60,7 @@ function getOpenAIClient(): OpenAI {
 /**
  * Call the OpenAI Prompt Caching API with a given prompt and messages, marshalling the response to type T
  */
-export async function callOpenAI<T>(
-    promptId: string,
-    promptVersion: string | undefined,
-    message: string,
-    modelId: string
-): Promise<OpenAIResponse<T>> {
+export async function callOpenAI<T>(promptId: string, promptVersion: string | undefined, message: string, modelId: string): Promise<OpenAIResponse<T>> {
     try {
         const openaiClient = getOpenAIClient();
         const promptPayload: { id: string; version?: string } = {
@@ -80,17 +75,17 @@ export async function callOpenAI<T>(
             prompt: promptPayload,
             input: message,
             model: modelId,
-            max_output_tokens: 2048 // eslint-disable-line camelcase
+            max_output_tokens: 2048
         });
 
         const marshalled = marshalResponse<T>(response as Record<string, any>);
 
         return {
-            error: '',
+            error: "",
             response: marshalled
         };
     } catch (error: any) {
-        const errorMsg = error.message || 'Unknown error';
+        const errorMsg = error.message || "Unknown error";
         logger.error(`OpenAI API call failed: ${errorMsg}`);
         return {
             error: errorMsg,
@@ -103,27 +98,26 @@ export async function callOpenAI<T>(
  * Marshal OpenAI responses API output to the expected type
  * Extracts JSON from code block wrapper (```json ... ```)
  */
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 function marshalResponse<T>(response: Record<string, any>): T {
     // Extract the message content from OpenAI's response structure
     const output = response.output;
     if (!output || !Array.isArray(output) || output.length === 0) {
-        throw new Error('Invalid OpenAI response: no output');
+        throw new Error("Invalid OpenAI response: no output");
     }
 
-    const textContent = output.find((item: any) => item.type === 'message');
+    const textContent = output.find((item: any) => item.type === "message");
     if (!textContent) {
-        throw new Error('Invalid OpenAI response: no message content');
+        throw new Error("Invalid OpenAI response: no message content");
     }
 
     const content = textContent.content;
     if (!content || !Array.isArray(content) || content.length === 0) {
-        throw new Error('Invalid OpenAI response: no content in message');
+        throw new Error("Invalid OpenAI response: no content in message");
     }
 
     const text = content[0]?.text;
     if (!text) {
-        throw new Error('Invalid OpenAI response: no text content');
+        throw new Error("Invalid OpenAI response: no text content");
     }
 
     // Extract JSON from code block wrapper
@@ -143,13 +137,7 @@ function marshalResponse<T>(response: Record<string, any>): T {
 /**
  * Generate speech audio using OpenAI's Text-to-Speech API
  */
-export async function synthesizeSpeech(
-    model: string,
-    voice: string,
-    text: string,
-    speed: number,
-    prompt?: string
-): Promise<OpenAIResponse<Buffer>> {
+export async function synthesizeSpeech(model: string, voice: string, text: string, speed: number, prompt?: string): Promise<OpenAIResponse<Buffer>> {
     try {
         const openaiClient = getOpenAIClient();
 
@@ -160,11 +148,10 @@ export async function synthesizeSpeech(
             voice,
             input: text,
             speed,
-            // eslint-disable-next-line camelcase
-            response_format: 'mp3'
+            response_format: "mp3"
         };
 
-        if (model === 'gpt-4o-mini-tts' && prompt) {
+        if (model === "gpt-4o-mini-tts" && prompt) {
             speechOptions.instructions = prompt;
         }
 
@@ -177,11 +164,11 @@ export async function synthesizeSpeech(
         logger.debug(`Successfully synthesized speech, buffer size: ${buffer.length} bytes`);
 
         return {
-            error: '',
+            error: "",
             response: buffer
         };
     } catch (error: any) {
-        const errorMsg = error.message || 'Unknown error';
+        const errorMsg = error.message || "Unknown error";
         logger.error(`OpenAI TTS API call failed: ${errorMsg}`);
         return {
             error: errorMsg,
@@ -207,11 +194,11 @@ export async function moderateText(text: string, model: string): Promise<OpenAIR
         logger.debug(`Moderation API response: flagged=${response.results[0]?.flagged}`);
 
         return {
-            error: '',
+            error: "",
             response
         };
     } catch (error: any) {
-        const errorMsg = error.message || 'Unknown error';
+        const errorMsg = error.message || "Unknown error";
         logger.error(`OpenAI Moderation API call failed: ${errorMsg}`);
         return {
             error: errorMsg,
