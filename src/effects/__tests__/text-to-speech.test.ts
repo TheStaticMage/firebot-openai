@@ -1,8 +1,8 @@
-import { textToSpeechEffect } from '../text-to-speech';
-import * as openaiModule from '../../internal/openai';
+import * as openaiModule from "../../internal/openai";
+import { textToSpeechEffect } from "../text-to-speech";
 
-jest.mock('../../internal/openai');
-jest.mock('../../main', () => ({
+jest.mock("../../internal/openai");
+jest.mock("../../main", () => ({
     logger: {
         debug: jest.fn(),
         info: jest.fn(),
@@ -20,7 +20,7 @@ jest.mock('../../main', () => ({
                 sendToOverlay: jest.fn()
             },
             resourceTokenManager: {
-                storeResourcePath: jest.fn().mockReturnValue('test-token')
+                storeResourcePath: jest.fn().mockReturnValue("test-token")
             },
             effectManager: {
                 registerEffect: jest.fn()
@@ -28,23 +28,23 @@ jest.mock('../../main', () => ({
         },
         firebot: {
             settings: {
-                getSetting: jest.fn().mockReturnValue({ deviceId: 'default', label: 'System Default' })
+                getSetting: jest.fn().mockReturnValue({ deviceId: "default", label: "System Default" })
             }
         }
     }
 }));
-jest.mock('fs');
-jest.mock('fs/promises');
-jest.mock('crypto', () => ({
-    randomUUID: jest.fn(() => 'test-uuid-123')
+jest.mock("fs");
+jest.mock("fs/promises");
+jest.mock("crypto", () => ({
+    randomUUID: jest.fn(() => "test-uuid-123")
 }));
-jest.mock('os', () => ({
-    tmpdir: jest.fn(() => '/tmp')
+jest.mock("os", () => ({
+    tmpdir: jest.fn(() => "/tmp")
 }));
 
 const mockedSynthesizeSpeech = openaiModule.synthesizeSpeech as jest.MockedFunction<typeof openaiModule.synthesizeSpeech>;
 
-describe('Text-to-Speech Effect', () => {
+describe("Text-to-Speech Effect", () => {
     beforeEach(() => {
         jest.useFakeTimers();
         jest.clearAllMocks();
@@ -54,94 +54,90 @@ describe('Text-to-Speech Effect', () => {
         jest.useRealTimers();
     });
 
-    describe('optionsValidator', () => {
-        it('should reject empty text', () => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    describe("optionsValidator", () => {
+        it("should reject empty text", () => {
             const errors = textToSpeechEffect.optionsValidator!({
-                model: 'tts-1' as any,
-                voice: 'alloy' as any,
-                text: ''
+                model: "tts-1" as any,
+                voice: "alloy" as any,
+                text: ""
             } as any);
 
-            expect(errors).toContain('Please enter text to speak.');
+            expect(errors).toContain("Please enter text to speak.");
         });
 
-        it('should reject speed below 0.25', () => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        it("should reject speed below 0.25", () => {
             const errors = textToSpeechEffect.optionsValidator!({
-                model: 'tts-1' as any,
-                voice: 'alloy' as any,
-                text: 'Hello',
+                model: "tts-1" as any,
+                voice: "alloy" as any,
+                text: "Hello",
                 speed: 0.1
             } as any);
 
-            expect(errors).toContain('Playback speed must be between 0.25 and 4.0.');
+            expect(errors).toContain("Playback speed must be between 0.25 and 4.0.");
         });
 
-        it('should reject speed above 4.0', () => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        it("should reject speed above 4.0", () => {
             const errors = textToSpeechEffect.optionsValidator!({
-                model: 'tts-1' as any,
-                voice: 'alloy' as any,
-                text: 'Hello',
+                model: "tts-1" as any,
+                voice: "alloy" as any,
+                text: "Hello",
                 speed: 5.0
             } as any);
 
-            expect(errors).toContain('Playback speed must be between 0.25 and 4.0.');
+            expect(errors).toContain("Playback speed must be between 0.25 and 4.0.");
         });
-
     });
 
-    describe('onTriggerEvent', () => {
-        it('should fail when text is empty after trimming', async () => {
+    describe("onTriggerEvent", () => {
+        it("should fail when text is empty after trimming", async () => {
             const event = {
                 effect: {
-                    model: 'tts-1',
-                    voice: 'alloy',
-                    text: '   \n\t  ',
+                    model: "tts-1",
+                    voice: "alloy",
+                    text: "   \n\t  ",
                     speed: 1.0
                 }
             } as any;
 
-            const result = await textToSpeechEffect.onTriggerEvent(event) as any;
+            const result = (await textToSpeechEffect.onTriggerEvent(event)) as any;
 
             expect(result.success).toBe(false);
-            expect(result.outputs.ttsError).toBe('Please enter text to speak.');
-            expect(result.outputs.ttsFilePath).toBe('');
+            expect(result.outputs.ttsError).toBe("Please enter text to speak.");
+            expect(result.outputs.ttsFilePath).toBe("");
             expect(mockedSynthesizeSpeech).not.toHaveBeenCalled();
         });
 
-        it('should successfully synthesize speech', async () => {
-            const mockBuffer = Buffer.from('mock audio data');
+        it("should successfully synthesize speech", async () => {
+            const mockBuffer = Buffer.from("mock audio data");
             mockedSynthesizeSpeech.mockResolvedValue({
-                error: '',
+                error: "",
                 response: mockBuffer
             });
 
             const event = {
                 effect: {
-                    model: 'tts-1',
-                    voice: 'alloy',
-                    text: 'Hello world',
+                    model: "tts-1",
+                    voice: "alloy",
+                    text: "Hello world",
                     speed: 1.0,
                     volume: 5,
                     waitForSound: true,
-                    audioOutputDevice: { deviceId: 'default', label: 'System Default' }
+                    audioOutputDevice: { deviceId: "default", label: "System Default" }
                 }
             } as any;
 
             const resultPromise = textToSpeechEffect.onTriggerEvent(event);
             await jest.runAllTimersAsync();
-            const result = await resultPromise as any;
+            const result = (await resultPromise) as any;
 
             expect(result.success).toBe(true);
-            expect(result.outputs.ttsError).toBe('');
-            expect(result.outputs.ttsFilePath).toContain('/tmp/firebot-openai-tts/');
-            expect(mockedSynthesizeSpeech).toHaveBeenCalledWith('tts-1', 'alloy', 'Hello world', 1.0, undefined);
+            expect(result.outputs.ttsError).toBe("");
+            expect(result.outputs.ttsFilePath).toContain("/tmp/firebot-openai-tts/");
+            expect(mockedSynthesizeSpeech).toHaveBeenCalledWith("tts-1", "alloy", "Hello world", 1.0, undefined);
         });
 
-        it('should handle TTS API errors', async () => {
-            const errorMessage = 'API rate limit exceeded';
+        it("should handle TTS API errors", async () => {
+            const errorMessage = "API rate limit exceeded";
             mockedSynthesizeSpeech.mockResolvedValue({
                 error: errorMessage,
                 response: null
@@ -149,34 +145,34 @@ describe('Text-to-Speech Effect', () => {
 
             const event = {
                 effect: {
-                    model: 'tts-1',
-                    voice: 'echo',
-                    text: 'Hello world',
+                    model: "tts-1",
+                    voice: "echo",
+                    text: "Hello world",
                     speed: 1.0,
                     volume: 5
                 }
             } as any;
 
-            const result = await textToSpeechEffect.onTriggerEvent(event) as any;
+            const result = (await textToSpeechEffect.onTriggerEvent(event)) as any;
 
             expect(result.success).toBe(false);
             expect(result.outputs.ttsError).toBe(errorMessage);
-            expect(result.outputs.ttsFilePath).toBe('');
+            expect(result.outputs.ttsFilePath).toBe("");
         });
 
-        it('should pass prompt to synthesizeSpeech for gpt-4o-mini-tts model', async () => {
-            const mockBuffer = Buffer.from('mock audio data');
+        it("should pass prompt to synthesizeSpeech for gpt-4o-mini-tts model", async () => {
+            const mockBuffer = Buffer.from("mock audio data");
             mockedSynthesizeSpeech.mockResolvedValue({
-                error: '',
+                error: "",
                 response: mockBuffer
             });
 
             const event = {
                 effect: {
-                    model: 'gpt-4o-mini-tts',
-                    voice: 'nova',
-                    text: 'Hello world',
-                    prompt: 'Speak in a friendly tone',
+                    model: "gpt-4o-mini-tts",
+                    voice: "nova",
+                    text: "Hello world",
+                    prompt: "Speak in a friendly tone",
                     speed: 1.0,
                     volume: 5
                 }
@@ -186,25 +182,19 @@ describe('Text-to-Speech Effect', () => {
             await jest.runAllTimersAsync();
             await resultPromise;
 
-            expect(mockedSynthesizeSpeech).toHaveBeenCalledWith(
-                'gpt-4o-mini-tts',
-                'nova',
-                'Hello world',
-                1.0,
-                'Speak in a friendly tone'
-            );
+            expect(mockedSynthesizeSpeech).toHaveBeenCalledWith("gpt-4o-mini-tts", "nova", "Hello world", 1.0, "Speak in a friendly tone");
         });
 
-        it('should use default values when not specified', async () => {
-            const mockBuffer = Buffer.from('mock audio data');
+        it("should use default values when not specified", async () => {
+            const mockBuffer = Buffer.from("mock audio data");
             mockedSynthesizeSpeech.mockResolvedValue({
-                error: '',
+                error: "",
                 response: mockBuffer
             });
 
             const event = {
                 effect: {
-                    text: 'Hello world'
+                    text: "Hello world"
                 }
             } as any;
 
@@ -213,80 +203,74 @@ describe('Text-to-Speech Effect', () => {
             await resultPromise;
 
             // Should use defaults: tts-1, alloy, speed 1.0
-            expect(mockedSynthesizeSpeech).toHaveBeenCalledWith(
-                'tts-1',
-                'alloy',
-                'Hello world',
-                1.0,
-                undefined
-            );
+            expect(mockedSynthesizeSpeech).toHaveBeenCalledWith("tts-1", "alloy", "Hello world", 1.0, undefined);
         });
 
-        it('should handle missing audio buffer response', async () => {
+        it("should handle missing audio buffer response", async () => {
             mockedSynthesizeSpeech.mockResolvedValue({
-                error: '',
+                error: "",
                 response: null
             });
 
             const event = {
                 effect: {
-                    model: 'tts-1',
-                    voice: 'alloy',
-                    text: 'Hello world',
+                    model: "tts-1",
+                    voice: "alloy",
+                    text: "Hello world",
                     speed: 1.0
                 }
             } as any;
 
-            const result = await textToSpeechEffect.onTriggerEvent(event) as any;
+            const result = (await textToSpeechEffect.onTriggerEvent(event)) as any;
 
             expect(result.success).toBe(false);
-            expect(result.outputs.ttsError).toContain('no audio data returned');
-            expect(result.outputs.ttsFilePath).toBe('');
+            expect(result.outputs.ttsError).toContain("no audio data returned");
+            expect(result.outputs.ttsFilePath).toBe("");
         });
     });
 
-    describe('skipPlayback option', () => {
-        it('should generate file without playback when skipPlayback is true', async () => {
-            const mockBuffer = Buffer.from('mock audio data');
+    describe("skipPlayback option", () => {
+        it("should generate file without playback when skipPlayback is true", async () => {
+            const mockBuffer = Buffer.from("mock audio data");
             mockedSynthesizeSpeech.mockResolvedValue({
-                error: '',
+                error: "",
                 response: mockBuffer
             });
 
             const event = {
                 effect: {
-                    model: 'tts-1',
-                    voice: 'alloy',
-                    text: 'Hello world',
+                    model: "tts-1",
+                    voice: "alloy",
+                    text: "Hello world",
                     speed: 1.0,
                     skipPlayback: true
                 }
             } as any;
 
-            const result = await textToSpeechEffect.onTriggerEvent(event) as any;
+            const result = (await textToSpeechEffect.onTriggerEvent(event)) as any;
 
             expect(result.success).toBe(true);
-            expect(result.outputs.ttsError).toBe('');
-            expect(result.outputs.ttsFilePath).toContain('/tmp/firebot-openai-tts/');
-            expect(result.outputs.ttsFilePath).toContain('.mp3');
+            expect(result.outputs.ttsError).toBe("");
+            expect(result.outputs.ttsFilePath).toContain("/tmp/firebot-openai-tts/");
+            expect(result.outputs.ttsFilePath).toContain(".mp3");
 
-            const { frontendCommunicator } = require('../../main').firebot.modules;
+            const { frontendCommunicator } = require("../../main").firebot.modules;
             expect(frontendCommunicator.send).not.toHaveBeenCalled();
             expect(frontendCommunicator.fireEventAsync).not.toHaveBeenCalled();
         });
 
-        it('should include file path in output when playback is enabled', async () => {
-            const mockBuffer = Buffer.from('mock audio data');
+        it("should include file path in output when playback is enabled", async () => {
+            const mockBuffer = Buffer.from("mock audio data");
             mockedSynthesizeSpeech.mockResolvedValue({
-                error: '',
+                error: "",
                 response: mockBuffer
             });
 
             const event = {
                 effect: {
-                    model: 'tts-1',
-                    voice: 'alloy',
-                    text: 'Hello world',
+                    model: "tts-1",
+                    voice: "alloy",
+                    text: "Hello world",
                     speed: 1.0,
                     volume: 5,
                     waitForSound: true,
@@ -296,59 +280,57 @@ describe('Text-to-Speech Effect', () => {
 
             const resultPromise = textToSpeechEffect.onTriggerEvent(event);
             await jest.runAllTimersAsync();
-            const result = await resultPromise as any;
+            const result = (await resultPromise) as any;
 
             expect(result.success).toBe(true);
-            expect(result.outputs.ttsError).toBe('');
-            expect(result.outputs.ttsFilePath).toContain('/tmp/firebot-openai-tts/');
+            expect(result.outputs.ttsError).toBe("");
+            expect(result.outputs.ttsFilePath).toContain("/tmp/firebot-openai-tts/");
         });
 
-        it('should return empty file path on generation error', async () => {
+        it("should return empty file path on generation error", async () => {
             mockedSynthesizeSpeech.mockResolvedValue({
-                error: 'API error',
+                error: "API error",
                 response: null
             });
 
             const event = {
                 effect: {
-                    model: 'tts-1',
-                    voice: 'alloy',
-                    text: 'Hello world',
+                    model: "tts-1",
+                    voice: "alloy",
+                    text: "Hello world",
                     skipPlayback: true
                 }
             } as any;
 
-            const result = await textToSpeechEffect.onTriggerEvent(event) as any;
+            const result = (await textToSpeechEffect.onTriggerEvent(event)) as any;
 
             expect(result.success).toBe(false);
-            expect(result.outputs.ttsError).toBe('API error');
-            expect(result.outputs.ttsFilePath).toBe('');
+            expect(result.outputs.ttsError).toBe("API error");
+            expect(result.outputs.ttsFilePath).toBe("");
         });
     });
 
-    describe('getDefaultLabel', () => {
-        it('should return a label with voice and text preview', () => {
+    describe("getDefaultLabel", () => {
+        it("should return a label with voice and text preview", () => {
             const effect = {
-                voice: 'nova',
-                text: 'This is a long text that should be truncated'
+                voice: "nova",
+                text: "This is a long text that should be truncated"
             };
 
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const label = textToSpeechEffect.getDefaultLabel!(effect as any);
 
-            expect(label).toContain('nova');
-            expect(label).toContain('This is a long text that sh');
+            expect(label).toContain("nova");
+            expect(label).toContain("This is a long text that sh");
         });
 
-        it('should handle missing voice', () => {
+        it("should handle missing voice", () => {
             const effect = {
-                text: 'Test text'
+                text: "Test text"
             };
 
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const label = textToSpeechEffect.getDefaultLabel!(effect as any);
 
-            expect(label).toContain('alloy');
+            expect(label).toContain("alloy");
         });
     });
 });

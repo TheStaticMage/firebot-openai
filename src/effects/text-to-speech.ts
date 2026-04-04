@@ -1,15 +1,15 @@
-import { synthesizeSpeech } from '../internal/openai';
-import { logger, firebot } from '../main';
-import { Firebot } from '@crowbartools/firebot-custom-scripts-types';
-import { randomUUID } from 'crypto';
-import * as fs from 'fs';
-import * as fsp from 'fs/promises';
-import * as path from 'path';
-import * as os from 'os';
+import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
+import { randomUUID } from "crypto";
+import * as fs from "fs";
+import * as fsp from "fs/promises";
+import * as os from "os";
+import * as path from "path";
+import { synthesizeSpeech } from "../internal/openai";
+import { firebot, logger } from "../main";
 
 export interface TextToSpeechEffectModel {
-    model: 'tts-1' | 'tts-1-hd' | 'gpt-4o-mini-tts';
-    voice: 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'fable' | 'nova' | 'onyx' | 'sage' | 'shimmer' | 'verse';
+    model: "tts-1" | "tts-1-hd" | "gpt-4o-mini-tts";
+    voice: "alloy" | "ash" | "ballad" | "coral" | "echo" | "fable" | "nova" | "onyx" | "sage" | "shimmer" | "verse";
     prompt?: string;
     text: string;
     speed?: number;
@@ -20,31 +20,31 @@ export interface TextToSpeechEffectModel {
     skipPlayback?: boolean;
 }
 
-const TTS_TEMP_DIR = path.join(os.tmpdir(), 'firebot-openai-tts');
+const TTS_TEMP_DIR = path.join(os.tmpdir(), "firebot-openai-tts");
 
 export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
     definition: {
-        id: 'openai:textToSpeech',
-        name: 'Text-To-Speech (OpenAI)',
-        description: 'Converts text to speech using OpenAI\'s TTS API.',
-        categories: ['integrations'],
-        icon: 'fad fa-microphone-alt',
+        id: "openai:textToSpeech",
+        name: "Text-To-Speech (OpenAI)",
+        description: "Converts text to speech using OpenAI's TTS API.",
+        categories: ["integrations"],
+        icon: "fad fa-microphone-alt",
         outputs: [
             {
-                label: 'Error',
-                description: 'Error message if the TTS failed. Empty string if successful.',
-                defaultName: 'ttsError'
+                label: "Error",
+                description: "Error message if the TTS failed. Empty string if successful.",
+                defaultName: "ttsError"
             },
             {
-                label: 'File Path',
-                description: 'Absolute path to the generated MP3 file. Empty string if generation failed.',
-                defaultName: 'ttsFilePath'
+                label: "File Path",
+                description: "Absolute path to the generated MP3 file. Empty string if generation failed.",
+                defaultName: "ttsFilePath"
             }
         ]
     },
     getDefaultLabel: (effect) => {
-        const voiceLabel = effect.voice || 'alloy';
-        const textPreview = effect.text?.substring(0, 30) || 'Text to speech';
+        const voiceLabel = effect.voice || "alloy";
+        const textPreview = effect.text?.substring(0, 30) || "Text to speech";
         return `TTS [${voiceLabel}]: ${textPreview}`;
     },
     optionsTemplate: `
@@ -124,35 +124,35 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
     `,
     optionsController: async ($scope: any, backendCommunicator: any) => {
         try {
-            const models = await backendCommunicator.fireEventAsync('openai:getTtsModels');
+            const models = await backendCommunicator.fireEventAsync("openai:getTtsModels");
             if (Array.isArray(models) && models.length > 0) {
                 $scope.models = models;
             } else {
-                throw new Error('No TTS models returned from backend');
+                throw new Error("No TTS models returned from backend");
             }
         } catch (error: any) {
             $scope.modelsError = `Failed to load models: ${error.message}`;
-            $scope.models = ['tts-1'];
+            $scope.models = ["tts-1"];
         }
 
         try {
-            const voices = await backendCommunicator.fireEventAsync('openai:getTtsVoices');
+            const voices = await backendCommunicator.fireEventAsync("openai:getTtsVoices");
             if (Array.isArray(voices) && voices.length > 0) {
                 $scope.voices = voices;
             } else {
-                throw new Error('No TTS voices returned from backend');
+                throw new Error("No TTS voices returned from backend");
             }
         } catch (error: any) {
             $scope.voicesError = `Failed to load voices: ${error.message}`;
-            $scope.voices = ['alloy'];
+            $scope.voices = ["alloy"];
         }
 
         if ($scope.effect.model == null) {
-            $scope.effect.model = 'tts-1';
+            $scope.effect.model = "tts-1";
         }
 
         if ($scope.effect.voice == null) {
-            $scope.effect.voice = 'alloy';
+            $scope.effect.voice = "alloy";
         }
 
         if ($scope.effect.speed == null) {
@@ -177,21 +177,21 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
         const errors: string[] = [];
 
         if (!effect.model) {
-            errors.push('Please select a valid TTS model.');
+            errors.push("Please select a valid TTS model.");
         }
 
         if (!effect.voice) {
-            errors.push('Please select a valid voice.');
+            errors.push("Please select a valid voice.");
         }
 
         if (!effect.text || effect.text.trim().length === 0) {
-            errors.push('Please enter text to speak.');
+            errors.push("Please enter text to speak.");
         }
 
         if (effect.speed != null) {
             const speed = effect.speed;
             if (isNaN(speed) || speed < 0.25 || speed > 4) {
-                errors.push('Playback speed must be between 0.25 and 4.0.');
+                errors.push("Playback speed must be between 0.25 and 4.0.");
             }
         }
 
@@ -202,9 +202,9 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
         const { frontendCommunicator, resourceTokenManager } = firebot.modules;
 
         try {
-            const model = effect.model || 'tts-1';
-            const voice = effect.voice || 'alloy';
-            const text = effect.text || '';
+            const model = effect.model || "tts-1";
+            const voice = effect.voice || "alloy";
+            const text = effect.text || "";
             const speed = effect.speed ?? 1.0;
             const volume = effect.volume ?? 5;
             const prompt = effect.prompt;
@@ -213,13 +213,13 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
             const trimmedText = text.trim();
 
             if (!trimmedText) {
-                const errorMsg = 'Please enter text to speak.';
-                logger.debug('TTS skipped because the text input is empty after trimming.');
+                const errorMsg = "Please enter text to speak.";
+                logger.debug("TTS skipped because the text input is empty after trimming.");
                 return {
                     success: false,
                     outputs: {
                         ttsError: errorMsg,
-                        ttsFilePath: ''
+                        ttsFilePath: ""
                     }
                 };
             }
@@ -234,19 +234,19 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
                     success: false,
                     outputs: {
                         ttsError: ttsResult.error,
-                        ttsFilePath: ''
+                        ttsFilePath: ""
                     }
                 };
             }
 
             if (!ttsResult.response) {
-                const errorMsg = 'Failed to synthesize speech: no audio data returned';
+                const errorMsg = "Failed to synthesize speech: no audio data returned";
                 logger.error(errorMsg);
                 return {
                     success: false,
                     outputs: {
                         ttsError: errorMsg,
-                        ttsFilePath: ''
+                        ttsFilePath: ""
                     }
                 };
             }
@@ -265,11 +265,11 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
 
             // If skipPlayback is enabled, return immediately with file path
             if (skipPlayback) {
-                logger.debug('Skipping playback, returning file path');
+                logger.debug("Skipping playback, returning file path");
                 return {
                     success: true,
                     outputs: {
-                        ttsError: '',
+                        ttsError: "",
                         ttsFilePath: audioFilePath
                     }
                 };
@@ -277,8 +277,8 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
 
             // Determine audio output device
             let selectedOutputDevice = effect.audioOutputDevice;
-            if (selectedOutputDevice == null || selectedOutputDevice.label === 'App Default') {
-                selectedOutputDevice = firebot.firebot.settings.getSetting('AudioOutputDevice');
+            if (selectedOutputDevice == null || selectedOutputDevice.label === "App Default") {
+                selectedOutputDevice = firebot.firebot.settings.getSetting("AudioOutputDevice");
             }
 
             const audioData: any = {
@@ -288,22 +288,22 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
             };
 
             // Route audio based on output device
-            if (selectedOutputDevice?.deviceId === 'overlay') {
-                logger.debug('Routing TTS audio to overlay');
+            if (selectedOutputDevice?.deviceId === "overlay") {
+                logger.debug("Routing TTS audio to overlay");
                 const { httpServer } = firebot.modules;
                 const resourceToken = resourceTokenManager.storeResourcePath(audioFilePath, 30);
                 audioData.resourceToken = resourceToken;
                 audioData.overlayInstance = effect.overlayInstance;
                 audioData.isUrl = false;
-                httpServer.sendToOverlay('sound', audioData);
+                httpServer.sendToOverlay("sound", audioData);
             } else {
                 logger.debug(`Routing TTS audio to frontend for playback: deviceId=${selectedOutputDevice?.deviceId}`);
-                frontendCommunicator.send('playsound', audioData);
+                frontendCommunicator.send("playsound", audioData);
             }
 
             // Get sound duration and schedule cleanup
             try {
-                const duration = await frontendCommunicator.fireEventAsync<number>('getSoundDuration', {
+                const duration = await frontendCommunicator.fireEventAsync<number>("getSoundDuration", {
                     path: audioFilePath
                 });
                 const durationInMs = (Math.round(duration) || 0) * 1000;
@@ -334,18 +334,18 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
             return {
                 success: true,
                 outputs: {
-                    ttsError: '',
+                    ttsError: "",
                     ttsFilePath: audioFilePath
                 }
             };
         } catch (err: any) {
-            const errorMsg = err.message || 'Unknown error during TTS effect';
+            const errorMsg = err.message || "Unknown error during TTS effect";
             logger.error(`TTS effect error: ${errorMsg}`);
             return {
                 success: false,
                 outputs: {
                     ttsError: errorMsg,
-                    ttsFilePath: ''
+                    ttsFilePath: ""
                 }
             };
         }
