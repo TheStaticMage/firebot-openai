@@ -9,7 +9,7 @@ import { firebot, logger } from "../main";
 
 export interface TextToSpeechEffectModel {
     model: "tts-1" | "tts-1-hd" | "gpt-4o-mini-tts";
-    voice: "alloy" | "ash" | "ballad" | "coral" | "echo" | "fable" | "nova" | "onyx" | "sage" | "shimmer" | "verse";
+    voice: "alloy" | "ash" | "ballad" | "cedar" | "coral" | "echo" | "fable" | "marin" | "nova" | "onyx" | "sage" | "shimmer" | "verse";
     prompt?: string;
     text: string;
     speed?: number;
@@ -123,6 +123,27 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
         <eos-overlay-instance ng-if="effect.audioOutputDevice && effect.audioOutputDevice.deviceId === 'overlay'" effect="effect" pad-top="true"></eos-overlay-instance>
     `,
     optionsController: async ($scope: any, backendCommunicator: any) => {
+        const loadVoices = async (model: string) => {
+            $scope.voicesError = null;
+            try {
+                const voices = await backendCommunicator.fireEventAsync("openai:getTtsVoices", model);
+                if (Array.isArray(voices) && voices.length > 0) {
+                    // Only apply voices if the model hasn't changed while we were waiting
+                    if ($scope.effect.model === model) {
+                        $scope.voices = voices;
+                        if (!$scope.voices.includes($scope.effect.voice)) {
+                            $scope.effect.voice = "alloy";
+                        }
+                    }
+                } else {
+                    throw new Error("No TTS voices returned from backend");
+                }
+            } catch (error: any) {
+                $scope.voicesError = `Failed to load voices: ${error.message}`;
+                $scope.voices = ["alloy"];
+            }
+        };
+
         try {
             const models = await backendCommunicator.fireEventAsync("openai:getTtsModels");
             if (Array.isArray(models) && models.length > 0) {
@@ -135,25 +156,21 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
             $scope.models = ["tts-1"];
         }
 
-        try {
-            const voices = await backendCommunicator.fireEventAsync("openai:getTtsVoices");
-            if (Array.isArray(voices) && voices.length > 0) {
-                $scope.voices = voices;
-            } else {
-                throw new Error("No TTS voices returned from backend");
-            }
-        } catch (error: any) {
-            $scope.voicesError = `Failed to load voices: ${error.message}`;
-            $scope.voices = ["alloy"];
-        }
-
         if ($scope.effect.model == null) {
             $scope.effect.model = "tts-1";
         }
 
+        await loadVoices($scope.effect.model);
+
         if ($scope.effect.voice == null) {
             $scope.effect.voice = "alloy";
         }
+
+        $scope.$watch("effect.model", async (newModel: string, oldModel: string) => {
+            if (newModel && newModel !== oldModel) {
+                await loadVoices(newModel);
+            }
+        });
 
         if ($scope.effect.speed == null) {
             $scope.effect.speed = 1.0;
@@ -182,6 +199,15 @@ export const textToSpeechEffect: Firebot.EffectType<TextToSpeechEffectModel> = {
 
         if (!effect.voice) {
             errors.push("Please select a valid voice.");
+        }
+
+        if (effect.model && effect.voice) {
+            const standardVoices = ["alloy", "ash", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"];
+            const miniVoices = ["alloy", "ash", "ballad", "cedar", "coral", "echo", "fable", "marin", "nova", "onyx", "sage", "shimmer", "verse"];
+            const validVoices = effect.model === "gpt-4o-mini-tts" ? miniVoices : standardVoices;
+            if (!validVoices.includes(effect.voice)) {
+                errors.push(`Voice '${effect.voice}' is not available for model '${effect.model}'.`);
+            }
         }
 
         if (!effect.text || effect.text.trim().length === 0) {

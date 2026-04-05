@@ -25,8 +25,25 @@ export const AVAILABLE_MODELS = [
     "gpt-3.5-turbo"
 ];
 export const AVAILABLE_TTS_MODELS = ["tts-1", "tts-1-hd", "gpt-4o-mini-tts"];
-export const AVAILABLE_VOICES = ["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse"];
+
+/** Voices available for tts-1 and tts-1-hd models */
+export const AVAILABLE_TTS_VOICES_STANDARD = ["alloy", "ash", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"];
+
+/** Extended voices available only for gpt-4o-mini-tts model */
+export const AVAILABLE_TTS_VOICES_MINI = ["alloy", "ash", "ballad", "cedar", "coral", "echo", "fable", "marin", "nova", "onyx", "sage", "shimmer", "verse"];
+
 export const AVAILABLE_MODERATION_MODELS = ["omni-moderation-latest", "text-moderation-latest"];
+
+/**
+ * Returns the list of available voices for a given TTS model.
+ * Falls back to standard voices for unknown models.
+ */
+export function getVoicesForModel(model: string): string[] {
+    if (model === "gpt-4o-mini-tts") {
+        return AVAILABLE_TTS_VOICES_MINI;
+    }
+    return AVAILABLE_TTS_VOICES_STANDARD;
+}
 
 export interface MessageInput {
     role: "user" | "assistant";

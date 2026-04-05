@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import OpenAI from "openai";
 import { integration } from "../../integration-singleton";
-import { callOpenAI, moderateText, OpenAIResponse } from "../openai";
+import { callOpenAI, getVoicesForModel, moderateText, OpenAIResponse } from "../openai";
 
 // Mock the OpenAI module and dependencies
 jest.mock("openai");
@@ -422,5 +422,31 @@ describe("OpenAI Moderation", () => {
             input: "test content",
             model: "text-moderation-latest"
         });
+    });
+});
+
+describe("getVoicesForModel", () => {
+    it("should return standard voices for tts-1", () => {
+        const voices = getVoicesForModel("tts-1");
+
+        expect(voices).toEqual(["alloy", "ash", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"]);
+    });
+
+    it("should return standard voices for tts-1-hd", () => {
+        const voices = getVoicesForModel("tts-1-hd");
+
+        expect(voices).toEqual(["alloy", "ash", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"]);
+    });
+
+    it("should return extended voices for gpt-4o-mini-tts", () => {
+        const voices = getVoicesForModel("gpt-4o-mini-tts");
+
+        expect(voices).toEqual(["alloy", "ash", "ballad", "cedar", "coral", "echo", "fable", "marin", "nova", "onyx", "sage", "shimmer", "verse"]);
+    });
+
+    it("should return standard voices for unknown model as fallback", () => {
+        const voices = getVoicesForModel("unknown-model");
+
+        expect(voices).toEqual(["alloy", "ash", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"]);
     });
 });

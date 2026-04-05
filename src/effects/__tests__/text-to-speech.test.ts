@@ -1,7 +1,15 @@
 import * as openaiModule from "../../internal/openai";
 import { textToSpeechEffect } from "../text-to-speech";
 
-jest.mock("../../internal/openai");
+jest.mock("../../internal/openai", () => ({
+    synthesizeSpeech: jest.fn(),
+    getVoicesForModel: jest.fn((model: string) => {
+        if (model === "gpt-4o-mini-tts") {
+            return ["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse", "marin", "cedar"];
+        }
+        return ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"];
+    })
+}));
 jest.mock("../../main", () => ({
     logger: {
         debug: jest.fn(),
@@ -85,6 +93,53 @@ describe("Text-to-Speech Effect", () => {
             } as any);
 
             expect(errors).toContain("Playback speed must be between 0.25 and 4.0.");
+        });
+
+        it("should reject voice not available for selected model", () => {
+            const errors = textToSpeechEffect.optionsValidator!({
+                model: "tts-1" as any,
+                voice: "marin" as any,
+                text: "Hello"
+            } as any);
+
+            expect(errors).toContain("Voice 'marin' is not available for model 'tts-1'.");
+        });
+
+        it("should reject gpt-4o-mini-tts exclusive voice for tts-1-hd", () => {
+            const errors = textToSpeechEffect.optionsValidator!({
+                model: "tts-1-hd" as any,
+                voice: "cedar" as any,
+                text: "Hello"
+            } as any);
+
+            expect(errors).toContain("Voice 'cedar' is not available for model 'tts-1-hd'.");
+        });
+
+        it("should accept voice available for selected model", () => {
+            const errors = textToSpeechEffect.optionsValidator!({
+                model: "gpt-4o-mini-tts" as any,
+                voice: "marin" as any,
+                text: "Hello"
+            } as any);
+
+            expect(errors).not.toContain("Voice 'marin' is not available for model 'gpt-4o-mini-tts'.");
+        });
+
+        it("should accept alloy voice for any model", () => {
+            const errors1 = textToSpeechEffect.optionsValidator!({
+                model: "tts-1" as any,
+                voice: "alloy" as any,
+                text: "Hello"
+            } as any);
+
+            const errors2 = textToSpeechEffect.optionsValidator!({
+                model: "gpt-4o-mini-tts" as any,
+                voice: "alloy" as any,
+                text: "Hello"
+            } as any);
+
+            expect(errors1).not.toContain("Voice 'alloy' is not available for model 'tts-1'.");
+            expect(errors2).not.toContain("Voice 'alloy' is not available for model 'gpt-4o-mini-tts'.");
         });
     });
 
