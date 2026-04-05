@@ -17,7 +17,7 @@ Requirements: Firebot 5.65+, an OpenAI API key, and access to the OpenAI Prompt 
     - `$objectWalkPath[$effectOutput[openaiResponse], some_field]]` - An output field defined in your prompt
   - Optional error handling: stop the effect list if the API request fails or if the response contains an error field. Optionally post a chat feed alert when errors occur.
 - Firebot effect **Text-To-Speech (OpenAI)** converts text to audio using OpenAI's TTS API (`tts-1`, `tts-1-hd`, or `gpt-4o-mini-tts` models).
-  - Choose from multiple voices (alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse).
+  - Choose from multiple voices: `tts-1` and `tts-1-hd` support alloy, ash, coral, echo, fable, onyx, nova, sage, shimmer; `gpt-4o-mini-tts` adds ballad, verse, marin, and cedar.
   - Adjust playback speed (0.25 to 4.0) and volume (1-10).
   - Optionally provide speaking instructions (prompt) for the `gpt-4o-mini-tts` model.
   - Route audio to system default, overlay, or custom audio device.

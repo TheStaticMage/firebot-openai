@@ -25,18 +25,20 @@
 - Pricing: check the OpenAI pricing page linked from those docs; `tts-1` is the lower-cost/fast default, `tts-1-hd` is higher quality at higher cost, and `gpt-4o-mini-tts` focuses on lightweight style control.
 - Model choice: start with `tts-1` for most use cases. Use `tts-1-hd` when audio polish matters (e.g., prerecorded lines). Use `gpt-4o-mini-tts` when you need to add short speaking instructions in the Prompt field.
 - Hearing samples: open the OpenAI Playground, switch to the Audio (Text to Speech) mode, and play each voice to hear it before selecting it in Firebot.
-- Voice character (based on OpenAI samples):
-  - alloy: balanced, neutral female
-  - ash: male
-  - ballad: calm narrator, mid male
-  - coral: bright, energetic female
-  - echo: deep baritone male
-  - fable: storyteller, mid-range female
-  - nova: clear, assertive female
-  - onyx: rich, lower male
-  - sage: warm, relaxed female
-  - shimmer: light, playful female
-  - verse: male
+- Voice character: OpenAI does not publish long official bios for each voice, so the notes below are practical listening impressions based on OpenAI's public samples and demos (`openai.fm`, Playground, and API docs/audio pages). The male/female labels are also listening-based, not official OpenAI metadata:
+  - alloy: female; balanced and neutral, with a polished "default assistant" sound that works well for general-purpose prompts (all models)
+  - ash: male; grounded and direct, with a slightly dry, conversational delivery that fits straightforward narration or instructions (all models)
+  - ballad: male; calm, measured narrator voice with a reflective tone; good for slower reads, summaries, and story-like delivery (`gpt-4o-mini-tts` only)
+  - cedar: male; steady and composed, with a more mature, reassuring presentation that fits explainers or support-style reads (`gpt-4o-mini-tts` only)
+  - coral: female; bright, upbeat, and energetic, with more smile in the delivery; useful for hype, announcements, and lively reads (all models)
+  - echo: male; deeper and more resonant, with a clear announcer quality that suits dramatic or authoritative lines (all models)
+  - fable: female; expressive and story-forward, with a softer theatrical feel that works well for narration and characterful reading (all models)
+  - marin: female; smooth and natural, with a relaxed contemporary delivery that lands between conversational and polished (`gpt-4o-mini-tts` only)
+  - nova: female; crisp, confident, and fairly assertive; a strong fit for clean prompts, tutorials, and presenter-style speech (all models)
+  - onyx: male; rich and low, with a heavier, more cinematic tone that works for serious or dramatic content (all models)
+  - sage: female; warm, easygoing, and reassuring, with a softer pace that fits friendly guidance or calm commentary (all models)
+  - shimmer: female; light, playful, and animated, with an airy quality that works for cheerful or whimsical lines (all models)
+  - verse: male; clear and expressive, with a deliberate reading style that feels suited to scripted narration or spoken-word style prompts (`gpt-4o-mini-tts` only)
 - Keep prompts short and avoid untrusted input. Put viewer or chat text in **Text to Speak**, not in **Prompt**.
 
 ## Tips and Tricks

@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { moderateTextEffect } from "./effects/moderate-text";
 import { runPromptEffect } from "./effects/run-prompt";
 import { textToSpeechEffect } from "./effects/text-to-speech";
-import { AVAILABLE_MODELS, AVAILABLE_MODERATION_MODELS, AVAILABLE_TTS_MODELS, AVAILABLE_VOICES } from "./internal/openai";
+import { AVAILABLE_MODELS, AVAILABLE_MODERATION_MODELS, AVAILABLE_TTS_MODELS, getVoicesForModel } from "./internal/openai";
 import { firebot, logger } from "./main";
 import { moderationCheckVariable } from "./replace-variables/moderation-check";
 
@@ -35,7 +35,7 @@ export class OpenAIIntegration extends EventEmitter {
         const { frontendCommunicator, effectManager, replaceVariableManager } = firebot.modules;
         frontendCommunicator.onAsync("openai:getModels", async () => AVAILABLE_MODELS);
         frontendCommunicator.onAsync("openai:getTtsModels", async () => AVAILABLE_TTS_MODELS);
-        frontendCommunicator.onAsync("openai:getTtsVoices", async () => AVAILABLE_VOICES);
+        frontendCommunicator.onAsync("openai:getTtsVoices", async (model?: string) => getVoicesForModel(model ?? "tts-1"));
         frontendCommunicator.onAsync("openai:getModerationModels", async () => AVAILABLE_MODERATION_MODELS);
 
         // Load effects
