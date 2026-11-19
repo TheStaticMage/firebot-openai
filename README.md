@@ -1,5 +1,11 @@
 # firebot-openai
 
+## Deprecation Notice
+
+This plugin is not tested with Firebot 5.67 or later and will no longer be developed. No support or updates will be provided. Code and documentation remain archived here for reference purposes only.
+
+## Introduction
+
 This is a [Firebot](https://firebot.app) plugin that allows you to run server-side prompts with OpenAI and use the results in Firebot.
 
 Requirements: Firebot 5.65+, an OpenAI API key, and access to the OpenAI Prompt Caching API.
@@ -51,7 +57,7 @@ These also work well when combined:
 - [Prompt Template](/doc/prompt-template.md)
 - [Text-To-Speech Guide](/doc/tts.md)
 - [Content Moderation Guide](/doc/moderation.md)
-
+<!--
 ## Support
 
 The best way to get help is in my Discord server. Join [The Static Discord](https://discord.gg/u64fJGh8pb) and visit the `#firebot-openai` channel.
@@ -76,7 +82,7 @@ If you use this on your stream, I would appreciate a shout-out. (Appreciated, bu
 - <https://youtube.com/@thestaticmagerisk>
 
 This script may contain and/or bundle some code from [Firebot](https://github.com/crowbartools/Firebot) itself, which uses the same license.
-
+-->
 ## Disclaimer
 
 This plugin is not associated with OpenAI. "OpenAI" and "ChatGPT" are trademarks of OpenAI, LP.
